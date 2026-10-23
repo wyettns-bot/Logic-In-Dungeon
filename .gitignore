@@ -1,0 +1,7 @@
+# build outputs (made by build.sh / build_gui.sh)
+game
+rd_gui
+*.o
+# per-player files
+settings.cfg
+__pycache__/

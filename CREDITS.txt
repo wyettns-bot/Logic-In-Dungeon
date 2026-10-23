@@ -1,0 +1,21 @@
+Logic In Dungeon - audio credits
+================================
+sfx/footstep_1..5.wav  <- footstep_concrete_000..004.ogg  Kenney "Impact Sounds" pack, https://kenney.nl/assets/impact-sounds - CC0 (public domain, no credit required)
+All other sfx/*.wav  <- generated from scratch by synth/sfx_synth.py (no samples; free to use)
+
+Music (assets/music)
+--------------------
+title.ogg (also the class select)  "The Fall of Arcana"        - Matthew Pablo
+explore.ogg (every puzzle floor)    "RPG For Wenches, Ale and Loot" - artist: ? (please fill in)
+boss_warden.ogg, boss_keeper.ogg    "Dark Descent"              - Matthew Pablo
+boss_bishops.ogg                    "The Voice of the Church (The King is Dead)" - artist: ? (please fill in)
+boss_shade.ogg                      "Takeover"                  - Horrorpen
+boss_ymir.ogg                       "Lurid Delusion"            - Matthew Pablo
+boss_duo.ogg                        "Blackmoor Colossus" (loop, no vocals) - artist: ? (please fill in)
+boss_king.ogg                       "Arabesque"                 - Chris Janowiak (soundcloud.com/brainiac256), album "The Uprising"
+boss_unbound.ogg                    "Wasteland Showdown"        - Matthew Pablo, "Post-Apocalyptic RPG Soundtrack"
+  (artists taken from the files' tags; check each download page for its licence - CC-BY needs this credit)
+  Each track was trimmed of silence at both ends and levelled to -16 LUFS (audio_tools/prep_music.sh).
+
+boss_generic.ogg, victory.ogg, game_over.ogg, level_up.ogg, floor_clear.ogg
+  <- composed from code by audio_tools/music_synth.py (no samples; free to use)
