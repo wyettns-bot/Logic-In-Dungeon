@@ -15,7 +15,7 @@ boss_duo.ogg                        "Blackmoor Colossus" (loop, no vocals) - art
 boss_king.ogg                       "Arabesque"                 - Chris Janowiak (soundcloud.com/brainiac256), album "The Uprising"
 boss_unbound.ogg                    "Wasteland Showdown"        - Matthew Pablo, "Post-Apocalyptic RPG Soundtrack"
   (artists taken from the files' tags; check each download page for its licence - CC-BY needs this credit)
-  Each track was trimmed of silence at both ends and levelled to -16 LUFS (audio_tools/prep_music.sh).
+  Each track was trimmed of silence at both ends and levelled to -16 LUFS (tools/audio/prep_music.sh).
 
 boss_generic.ogg, victory.ogg, game_over.ogg, level_up.ogg, floor_clear.ogg
-  <- composed from code by audio_tools/music_synth.py (no samples; free to use)
+  <- composed from code by tools/audio/music_synth.py (no samples; free to use)

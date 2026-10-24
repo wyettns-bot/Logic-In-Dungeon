@@ -7,6 +7,8 @@ Run it (python3 items.py) after changing anything here. It writes:
   gui_items.h     names, rarity, icon and a description for the raylib window's tooltips
 """
 
+import os as _os
+_os.chdir(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))   # run from anywhere: work in the game folder
 F, R, W = 0b100, 0b010, 0b001             # class bits
 ALL = F | R | W
 STR, DEX, CON, INT = 0b1000, 0b0100, 0b0010, 0b0001

@@ -1,5 +1,7 @@
 """Lays out the circuit templates on the 51x13 room grid, checks them, prints an ASCII preview,
 and writes circuits.inc (the data tables the assembly reads)."""
+import os as _os
+_os.chdir(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))   # run from anywhere: work in the game folder
 import sys
 
 W, H = 51, 13

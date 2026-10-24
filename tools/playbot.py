@@ -1,8 +1,10 @@
 """playbot.py - plays the real game in a terminal emulator and logs how it goes.
 usage: CLS=1 MAXFLOOR=9 python3 playbot.py
 """
+import os as _os
+_os.chdir(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))   # run from anywhere: work in the game folder
 import os, sys, time, re, collections
-exec(open('h.py').read())
+exec(open(_os.path.join('tools', 'h.py')).read())
 
 CLS = os.environ.get("CLS", "1")
 MAXFLOOR = int(os.environ.get("MAXFLOOR", "9"))

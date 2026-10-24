@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """inline_asm.py - paste every %include into one file: game.asm -> logicindungeon.asm"""
+import os as _os
+_os.chdir(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))   # run from anywhere: work in the game folder
 import re, sys, os
 def expand(path, seen):
     out = []
