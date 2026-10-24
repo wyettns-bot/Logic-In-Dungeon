@@ -3968,7 +3968,7 @@ msgKing db "The Forgotten King watches from his throne. Power the throne's wire 
 msgKinglen equ $- msgKing
 msgFalls db "The guardian falls. The door grinds open."
 msgFallslen equ $- msgFalls
-msgShade db "The Dark Shade rises. Darkness hides it - light burns it."
+msgShade db "The Dark Shade rises. Its torches burn cold - only the lantern can reveal it."
 msgShadelen equ $- msgShade
 
 section .bss
@@ -7399,8 +7399,9 @@ init_features:
 ;                match that gate he takes half damage. Match it and the shield breaks for
 ;                2 rounds; then it returns with a new gate and the torches leap to the
 ;                other side of the room.            (centre letter = the gate, B = broken)
-;   floor 15     the Dark Shade: dark room. It can only be hurt in torch light (half
-;                damage), or anywhere while the lantern burns (full damage). Two gates
+;   floor 15     the Dark Shade: dark room, and the torches burn cold blue: no light. It can
+;                only be hurt while the lantern burns (full damage), or next to you if you
+;                carry a light (half). Two gates
 ;                light the lantern. It hunts lit torches and snuffs them.   (D lit, d dark)
 ;   floor 17     Grand Wizard Ymir: the top pair feeds the top gate, the bottom pair the
 ;                bottom gate. A gate that outputs 1 puts out a power torch (& lit, ~ out).
@@ -7504,7 +7505,7 @@ msgMode0 db "The Unbound shakes the room into the Warden's hall - match the gate
 msgMode0len equ $- msgMode0
 msgMode1 db "The Unbound shakes the room into the Bishops' chapel - he splits in four! Only the 1 can be hurt."
 msgMode1len equ $- msgMode1
-msgMode2 db "The Unbound shakes the room into the Shade's dark - light the lantern or fight in torch light!"
+msgMode2 db "The Unbound shakes the room into the Shade's dark - only the lantern's light can hurt him!"
 msgMode2len equ $- msgMode2
 msgMode3 db "The Unbound shakes the room into Ymir's tower - every lit power torch is another strike!"
 msgMode3len equ $- msgMode3
@@ -7536,7 +7537,7 @@ uFormStats db miniboss_w,miniboss_h, 1, 5     ; the Warden
 
 plqWarden db "WARDEN - light the pair so the gate on his shield lets it through."
 plqWardenlen equ $- plqWarden
-plqShade db "LANTERN - power both gates to light the lantern. Light burns the Shade."
+plqShade db "LANTERN - power both gates to light the lantern. The torches' cold fire gives no light."
 plqShadelen equ $- plqShade
 plqYmir db "POWER - a gate that outputs 1 puts out one of Ymir's power torches."
 plqYmirlen equ $- plqYmir
@@ -7736,7 +7737,10 @@ rect_dist:                          ; distance (in steps) from enemy ecx's body 
     pop ebx
     ret
 
-in_light:                           ; ecx = enemy -> CF=1 if it stands in the light of a lit torch   (keeps everything)
+in_light:                           ; ecx = enemy -> CF=1 if it stands in torch light   (keeps everything)
+    clc                             ; v29: the Shade's torches are cold blue fire and give no light -
+    ret                             ;   only the lantern (or a light you carry) can reach it
+in_light_old:                       ; (the old rule, kept for reference)
     pushad
     call torch_count
     mov [bLI], eax
@@ -9319,11 +9323,11 @@ unbound_cut:                        ; eax = damage about to hit enemy ecx while 
     jne .y
     cmp dword [lanternT], 0
     jne .count                      ; the lantern burns: full damage
-    call in_light                   ; darkness: only in torch light
-    jc .count
-    call near_your_light
-    jc .count
-    xor eax, eax
+    call near_your_light            ; darkness: only a light you carry, and only half
+    jnc .uz
+    shr eax, 1
+    jmp .count
+.uz:xor eax, eax
     jmp .r
 .y: cmp edx, UF_YMIR
     jne .b

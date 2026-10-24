@@ -1,4 +1,4 @@
-# Logic In Dungeon (v28)
+# Logic In Dungeon (v29)
 
 The game is the assembly program (`game.asm` plus its `.inc` files, and `CC.asm`).
 `rd_gui.c` is the raylib front end. It runs the assembly game in a hidden terminal, reads what
@@ -80,8 +80,8 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - Then he shouts "Burn anew!", his beam throws the torches to the other side of the room, and the shield returns with a new gate and the torches set wrong.
 - If someone is standing where the torches would land, they pick a free row instead.
 
-**Dark Shade (floor 15, 5x3).** The room is dark.
-- The Shade takes no damage in darkness and half damage in a lit torch's light (4 cells).
+**Dark Shade (floor 15, 5x3).** The room is dark, and its torches burn with cold blue fire that gives no light.
+- The Shade takes no damage in the dark. The only way to hurt it is the lantern puzzle (or, at half damage, standing next to it while you carry a light: the Lantern Charm or the Duskplate).
 - The left torch pair feeds one gate and the right pair another. When both output 1, the lantern in the middle blazes for 2 rounds and the Shade takes full damage anywhere.
 - The Shade hunts lit torches and snuffs one at most every other round. With NAND or NOR gates, putting a torch out can light the lantern by itself.
 - When the lantern's 2 rounds end, the Shade shatters it: new gates, and the torches go dark.
@@ -119,7 +119,7 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - Unbound, he takes the form of every boss in the game, always in the same order. After you **wound** him 3 times in one form (a hit that does 0 damage doesn't count), he changes form: the screen shakes, the room becomes that boss's arena, and **his body takes that boss's size, reach and speed**. Anyone standing where something new appears is moved to the nearest free space.
   1. **Warden (3x3):** a torch pair on the side away from him, a gate on his shield. He takes half damage until the pair matches.
   2. **Bishops (2x2):** he splits into four. He and three bishop copies stand in the corners, with gates on the square between them. Only the 1 can be hurt, and the copies share his health. Each wound moves the 1. Their volley lands one beam (Smite or Judgment). Nobody moves. The copies vanish when the form ends, and if a copy takes the last of his health, it was him all along.
-  3. **Shade (5x3):** the Shade's circuit and lantern. He can only be hurt in torch light, or anywhere while the lantern burns.
+  3. **Shade (5x3):** the Shade's circuit, lantern and cold torches. He can only be hurt while the lantern burns (or at half damage next to you if you carry a light).
   4. **Ymir (4x4, reach 7):** Ymir's circuit and two power torches. Each lit power torch is an extra strike. With both out he takes +50%.
   5. **Logic Keeper (4x4):** two shadow Wardens link to him, each with its own torch pair. He can't be hurt while either is linked. Match a pair to its Warden's gate to cut that link for 4 rounds. Shadow Wardens move and attack; killing one cuts it for good (no XP or loot).
   6. **Altair (2x2, quick, reach 2):** a bit over his head. A 1 means half damage, a 0 means +50%. It can flip every round.
@@ -129,7 +129,7 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 
 **What the terminal shows**
 - Warden: the gate letter in the middle of his body, or `B` when the shield is broken.
-- Shade: `D` in light, `d` in darkness.
+- Shade: `D` while the lantern burns (it can be hurt), `d` in darkness.
 - Ymir's power torches: `&` lit, `~` out.
 - Logic Keeper: `J` linked (can't be hurt), `j` open.
 - Bishops: `P`; the gates on the square are their letters (`A` AND, `X` XOR, `v` NOR).

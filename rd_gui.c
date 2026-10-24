@@ -1017,6 +1017,17 @@ static int unbound_mode_char(void) {                      /* the Unbound King's 
     return mc(c0 + w / 2, r0 + h / 2);                    /* his size changes with the boss he imitates */
 }
 static int unbound_mode_char(void);
+static int shade_room(void) {                              /* the Dark Shade's room, or the Unbound's Shade form: its torches burn cold */
+    int um = unbound_mode_char();
+    return S.floor == 15 || um == 'D' || um == 'd';
+}
+static void cold_flame(float cx, float by, float sz, float t) {   /* a cold blue flame: it burns, but gives no light */
+    float f = 1 + 0.15f * sinf(t * 13);
+    DrawCircleGradient((int)cx, (int)(by - sz * 0.6f), sz * 1.4f, Fade((Color){ 80, 150, 255, 255 }, 0.18f), BLANK);
+    DrawTriangle((Vector2){ cx, by - sz * 2.0f * f }, (Vector2){ cx - sz * 0.75f, by + sz * 0.7f }, (Vector2){ cx + sz * 0.75f, by + sz * 0.7f }, (Color){ 50, 110, 230, 255 });
+    DrawTriangle((Vector2){ cx, by - sz * 1.3f * f }, (Vector2){ cx - sz * 0.45f, by + sz * 0.7f }, (Vector2){ cx + sz * 0.45f, by + sz * 0.7f }, (Color){ 140, 200, 255, 255 });
+    DrawTriangle((Vector2){ cx, by - sz * 0.6f * f }, (Vector2){ cx - sz * 0.18f, by + sz * 0.7f }, (Vector2){ cx + sz * 0.18f, by + sz * 0.7f }, (Color){ 230, 245, 255, 255 });
+}
 static int room_is_dark(void) {
     int um = unbound_mode_char();
     if (S.floor == 15 || um == 'D' || um == 'd') {          /* the Shade's room (or the Unbound's Shade form), unless the lantern burns */
@@ -1026,7 +1037,8 @@ static int room_is_dark(void) {
     return 0;
 }
 static void draw_darkness(void) {                          /* black over everything the light doesn't reach */
-    TorchPos tp[8]; int n = find_torches(tp, 8);
+    TorchPos tp[8]; int n = find_torches(tp, 8), nt = n;
+    if (shade_room()) n = 0;                               /* the Shade's torches burn cold: no light at all */
     Vector2 me = player_px();
     for (int r = 1; r < MAP_H - 1; r++) for (int c = 1; c < MAP_W - 1; c++) for (int q = 0; q < 4; q++) {   /* quarter cells: softer edges */
         float fc = c + (q & 1) * 0.5f - 0.25f, fr = r + (q >> 1) * 0.5f - 0.25f;
@@ -1047,6 +1059,13 @@ static void draw_darkness(void) {                          /* black over everyth
     for (int i = 0; i < n; i++) if (tp[i].lit) {
         float cx = MAP_X + (tp[i].c + 1) * TS + TS / 2.0f, cy = MAP_Y + tp[i].r * TS + TS / 2.0f;
         DrawCircleGradient((int)cx, (int)cy, TS * 5.0f, Fade((Color){ 255, 170, 70, 255 }, 0.10f + 0.03f * sinf(T * 9 + i)), BLANK);
+    }
+    if (shade_room()) for (int i = 0; i < nt; i++) {        /* cold flames glimmer through the dark (lighting nothing) */
+        Rectangle t = tile(tp[i].c + 1, tp[i].r);
+        if (tp[i].lit) cold_flame(t.x + TS / 2, t.y - 16 + 24, 9, T + tp[i].c);
+        Rectangle b = { t.x + TS - 2, t.y - 14, 22, 22 };  /* keep the 0 / 1 badge readable */
+        DrawRectangleRounded(b, 0.4f, 6, tp[i].lit ? (Color){ 120, 180, 255, 255 } : (Color){ 70, 74, 90, 255 });
+        txt_c(tp[i].lit ? "1" : "0", b.x + 11, b.y + 2, 17, tp[i].lit ? (Color){ 10, 30, 70, 255 } : C_TEXT, 1);
     }
 }
 static void bit_badge(float cx, float y, int bit) {        /* a 1 or a 0 floating over a head */
@@ -1845,17 +1864,18 @@ static void draw_map(void) {
         Rectangle t = tile(c, r); char ch = mc(c, r);
         float bob = sinf(T * 3 + c * 0.7f + r) * 1.5f;
         if ((ch == '0' || ch == '1') && mc(c - 1, r) == '[' && mc(c + 1, r) == ']') {          /* a torch: "[0]" or "[1]" */
-            int lit = ch == '1';
+            int lit = ch == '1', cold = shade_room();                                          /* (the Shade's torches: cold blue fire, no light) */
             float bx = t.x - 8, by = t.y - 16;                                                  /* a 48x48 brazier, standing on its tile */
             DrawEllipse((int)(t.x + TS / 2), (int)(t.y + TS - 2), 16, 4, Fade(BLACK, 0.5f));
-            if (lit) DrawCircleGradient((int)(t.x + TS / 2), (int)(t.y + 4), TS * 2.0f, Fade((Color){ 255, 160, 60, 255 }, 0.22f), BLANK);
-            sprite(SPR_BRAZIER, 16, bx, by, 3, WHITE, 0);
-            if (lit) flame(t.x + TS / 2, by + 26, 11, T + c);
+            if (lit && !cold) DrawCircleGradient((int)(t.x + TS / 2), (int)(t.y + 4), TS * 2.0f, Fade((Color){ 255, 160, 60, 255 }, 0.22f), BLANK);
+            sprite(SPR_BRAZIER, 16, bx, by, 3, cold ? (Color){ 170, 190, 230, 255 } : WHITE, 0);
+            if (lit && cold) cold_flame(t.x + TS / 2, by + 24, 9, T + c);
+            else if (lit) flame(t.x + TS / 2, by + 26, 11, T + c);
             else for (int k = 0; k < 5; k++) DrawCircle((int)(bx + 12 + k * 6), (int)(by + 24), 3, (Color){ 64, 60, 58, 255 });
             Rectangle b = { t.x + TS - 2, t.y - 14, 22, 22 };                                    /* the 0 / 1 badge */
-            DrawRectangleRounded(b, 0.4f, 6, lit ? C_GOLD : (Color){ 70, 74, 90, 255 });
+            DrawRectangleRounded(b, 0.4f, 6, lit ? (cold ? (Color){ 120, 180, 255, 255 } : C_GOLD) : (Color){ 70, 74, 90, 255 });
             DrawRectangleRoundedLinesEx(b, 0.4f, 6, 1, Fade(BLACK, 0.6f));
-            txt_c(lit ? "1" : "0", b.x + 11, b.y + 2, 17, lit ? (Color){ 60, 30, 0, 255 } : C_TEXT, 1);
+            txt_c(lit ? "1" : "0", b.x + 11, b.y + 2, 17, lit ? (cold ? (Color){ 10, 30, 70, 255 } : (Color){ 60, 30, 0, 255 }) : C_TEXT, 1);
         } else if ((ch == '<' || ch == '>') && mc(c, r - 1) != ch) {                             /* the door, drawn whole */
             int n = 1; while (mc(c, r + n) == ch) n++;
             tall_door(c, r, n, ch == '>');

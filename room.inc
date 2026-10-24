@@ -68,7 +68,7 @@ msgKing db "The Forgotten King watches from his throne. Power the throne's wire 
 msgKinglen equ $- msgKing
 msgFalls db "The guardian falls. The door grinds open."
 msgFallslen equ $- msgFalls
-msgShade db "The Dark Shade rises. Darkness hides it - light burns it."
+msgShade db "The Dark Shade rises. Its torches burn cold - only the lantern can reveal it."
 msgShadelen equ $- msgShade
 
 section .bss
