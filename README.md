@@ -264,6 +264,7 @@ The sprites are drawn by the Python scripts in `art/` (shapes plus an automatic 
 | `room.inc` | Door, plaque, 2-torch gate puzzles, boss rooms |
 | `circuit.inc` | Circuit puzzles: setup, solvability check, evaluation, drawing |
 | `progress.inc` | Levels, XP, perks, stat points, what your gear adds |
+| `tools/tests/` | Test bots that play every boss and check its mechanics (`python3 tools/tests/run_all.py`, see its README) |
 | `tools/playbot.py` | A bot that plays the real game in a terminal emulator and logs each floor (`CLS=1 MAXFLOOR=14 python3 tools/playbot.py`; needs `pip install pyte`, uses `tools/h.py`) |
 | `tools/items.py` | Every special item: makes `items_rec.inc`, `items_cat.inc`, `items_loot.inc`, `gui_items.h` |
 | `bosses.inc` | The Warden, Shade, Ymir, Altair and Smo, the Forgotten King and his cannon, the Unbound King's six forms |

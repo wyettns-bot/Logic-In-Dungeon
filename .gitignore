@@ -5,3 +5,4 @@ rd_gui
 # per-player files
 settings.cfg
 __pycache__/
+tools/tests/build/
