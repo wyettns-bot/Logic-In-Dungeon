@@ -206,8 +206,27 @@ set_area_to_enemy:              ; ecx = enemy -> [rx],[ry],[rw],[rh] = its body
     pop esi
     ret
 
+enemy_rooted:                   ; ecx = enemy -> CF=1 if it must never leave its place   (keeps all)
+    push esi
+    call enemy_rec
+    cmp byte [esi+ENEMY_MOVE], 0    ; (speed 0: the bishops, the Forgotten King, the Unbound's bishop form)
+    pop esi
+    je .yes
+    cmp dword [enemyType+ecx*4], ETYPE_MINIBOSS
+    jne .no
+    call keeper_like                ; a Warden guarding the Keeper (or the Unbound's Keeper form)
+    jne .no
+.yes:
+    stc
+    ret
+.no:
+    clc
+    ret
+
 enemy_move_to:                  ; move enemy [eI] so its top-left is at [nX],[nY] - only if its WHOLE body fits there
     mov ecx, [eI]
+    call enemy_rooted           ; bishops, the King on his throne, the Keeper's Wardens never move
+    jc .no
     mov eax, [nX]
     cmp eax, [enemyX+ecx*4]
     jne .check

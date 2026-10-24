@@ -1,4 +1,4 @@
-# Logic In Dungeon (v26)
+# Logic In Dungeon (v27)
 
 The game is the assembly program (`game.asm` plus its `.inc` files, and `CC.asm`).
 `rd_gui.c` is the raylib front end. It runs the assembly game in a hidden terminal, reads what
