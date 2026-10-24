@@ -780,13 +780,18 @@ attack_note:                            ; [eI] = the attacker, eax = 1 hit / 0 m
     cmp edx, ETYPE_KING
     je .go
     mov bl, 'u'
+    cmp edx, ETYPE_UCOPY
+    je .ub
     cmp edx, ETYPE_UNBOUND
     jne .sk
-    cmp dword [uMode], UF_ALTAIR        ; the Unbound strikes as the boss he imitates
-    jne .us
+.ub:cmp dword [uMode], UF_DUO           ; the Unbound strikes as the boss he imitates:
+    jne .go                             ;   the quick body throws lightning, the heavy one slams
+    push esi
+    call enemy_rec
+    cmp byte [esi+ENEMY_W], 2
+    pop esi
     mov bl, 'l'
-.us:cmp dword [uMode], UF_SMO
-    jne .go
+    je .go
     mov bl, 's'
     jmp .go
 .sk:

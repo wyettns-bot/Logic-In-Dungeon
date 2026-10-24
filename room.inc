@@ -64,7 +64,7 @@ msgBossSeal db "The door won't budge while the guardian lives."
 msgBossSeallen equ $- msgBossSeal
 msgWarden db "A Warden blocks the way! Light the torch pair to match the gate on his shield."
 msgWardenlen equ $- msgWarden
-msgKing db "The Forgotten King watches from his throne. Power the throne's wire to wound him."
+msgKing db "The Forgotten King sits immune on his throne. Power the circuit - its blue torch will blast him."
 msgKinglen equ $- msgKing
 msgFalls db "The guardian falls. The door grinds open."
 msgFallslen equ $- msgFalls

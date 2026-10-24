@@ -55,7 +55,7 @@ def T_B():          # (A ? B) ? (C ? D)
              (6, path((44, 6), (49, 6)))]
     return torches, gates, wires, 6
 
-# ---- boss rooms (v8). Their gates may face other ways (the GUI rotates them), so they skip
+# ---- boss rooms. Their gates may face other ways (the GUI rotates them), so they skip
 #      the left-to-right checks but still must not overlap or touch wrongly.
 def T_S():          # the Dark Shade: (A ? B) and (C ? D) both light the lantern (node 6, a fixed AND)
     torches = [(8, 2), (8, 10), (40, 2), (40, 10)]
@@ -77,7 +77,7 @@ def T_Y():          # Grand Wizard Ymir: top pair -> top gate (inputs from above
              (3, path((39, 11), (26, 11)))]
     return torches, gates, wires, 4
 
-def T_K():          # the Forgotten King's throne: (A ? B) ? (C ? D), the last wire runs into the throne
+def T_K():          # the Forgotten King's throne: (A ? B) ? (C ? D), the last wire runs to the blue cannon torch (34,6)
     torches = [(8, 0), (8, 4), (8, 8), (8, 12)]
     gates = [(0, 1, 17, 2), (2, 3, 17, 10), (4, 5, 26, 6)]
     wires = [(0, path((11, 0), (15, 0), (15, 1))),
@@ -86,7 +86,7 @@ def T_K():          # the Forgotten King's throne: (A ? B) ? (C ? D), the last w
              (3, path((11, 12), (15, 12), (15, 11))),
              (4, path((19, 2), (24, 2), (24, 5))),
              (5, path((19, 10), (24, 10), (24, 7))),
-             (6, path((28, 6), (37, 6)))]
+             (6, path((28, 6), (33, 6)))]
     return torches, gates, wires, 6
 
 TEMPLATES = [("A", T_A()), ("C", T_C()), ("B", T_B()), ("S", T_S()), ("Y", T_Y()), ("K", T_K())]

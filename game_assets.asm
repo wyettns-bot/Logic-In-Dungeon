@@ -44,6 +44,7 @@ section .data
 	altairZeroIcon db "FF","FF"                   ;Altair carrying the 0 (exposed)
 	smoZeroIcon db "HHHH","HHHH","HHHH","HHHH"    ;Smo carrying the 0 (exposed)
 	unboundIcon db "ZZZZZZZ","ZZZZZZZ","ZZZZZZZ","ZZZZZZZ","ZZZZZZZ","ZZZZZZZ","ZZZZZZZ"   ;the Forgotten King, Unbound (7x7)
+	ucopyIcon db "zzzz","zzzz","zzzz","zzzz"      ;a copy of the Unbound King (drawn from a buffer at its current size)
 	unbound_w equ 7
 	unbound_h equ 7
 
@@ -74,6 +75,7 @@ section .data
 	smo db 110,125, 4,11, 5, 1, 4, big4_w,big4_h, 1 ;slow, hits very hard
 	unbound db 200,220, 4,10, 7, 1, 5, unbound_w,unbound_h, 2 ;the King after his fake death
 	bishop db 30,36, 1,4, 5, 99, 0, 2,2, 1 ;the Four Bishops (floor 12): never move, cast across the whole room
+	ucopy db 200,220, 4,10, 7, 99, 0, 2,2, 1 ;a copy of the Unbound King (his Bishops and Altair & Smo forms): size, reach and speed set per form
 	ENEMY_TYPES equ ($ - enemyTable) / ENEMY_SIZE
 	ETYPE_GOBLIN equ 0
 	ETYPE_SKELETON equ 1
@@ -87,9 +89,10 @@ section .data
 	ETYPE_SMO equ 9
 	ETYPE_UNBOUND equ 10
 	ETYPE_BISHOP equ 11
+	ETYPE_UCOPY equ 12
 
 	;the sprite of each enemy type, same order as the table
-	enemySprites dd goblinIcon, skeletonIcon, orcIcon, minibossIcon, finalbossIcon, shadeIcon, ymirIcon, keeperIcon, altairIcon, smoIcon, unboundIcon, bishopIcon
+	enemySprites dd goblinIcon, skeletonIcon, orcIcon, minibossIcon, finalbossIcon, shadeIcon, ymirIcon, keeperIcon, altairIcon, smoIcon, unboundIcon, bishopIcon, ucopyIcon
 
 	;which normal enemies show up: out of 10, (goblin, skeleton, orc) for floors 1-2, 3-6, 7+
 	spawnOdds db 6,3,1, 4,4,2, 2,4,4, 8,0,2     ;(the last three: floor 1, no skeletons)
@@ -105,9 +108,9 @@ section .data
 	FINAL_FLOOR equ 30 ;the Forgotten King himself
 
 	;potions
-	minorPotion db 3		; heals 3
-	regPotion db 6			; heals 6
-	largePotion db 12       ; heals 12
+	minorPotion db 6, 5		; heals 6 + 5% of your max HP
+	regPotion db 12, 10		; heals 12 + 10% of your max HP
+	largePotion db 24, 15	; heals 24 + 15% of your max HP
 
 	;effects, one shared list for weapons, armor and spells. one number per item, 0 = none
 	EFFECT_NONE      equ 0
@@ -241,6 +244,7 @@ section .data
 		fixedname "Smo"
 		fixedname "King Unbound"
 		fixedname "Bishop"
+		fixedname "King Unbound"
 
 	;the class bit for each class number (class '1','2','3' -> Fighter, Rogue, Wizard)
 

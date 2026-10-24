@@ -686,10 +686,16 @@ static const char **class_sprite(void) {
 static const char **enemy_sprite(char l) { return l == 'S' ? SPR_SKELETON : l == 'O' ? SPR_ORC : SPR_GOBLIN; }
 static const char *enemy_name(char l) {
     return l == 'G' ? "Goblin" : l == 'S' ? "Skeleton" : l == 'O' ? "Orc" : l == 'M' ? "Warden" : l == 'K' ? "Forgotten King" : l == 'D' ? "Dark Shade" :
-           l == 'Y' ? "Grand Wizard Ymir" : (l == 'J' || l == 'j') ? "Logic Keeper" : (l == 'T' || l == 't') ? "Altair" : (l == 'U' || l == 'u') ? "Smo" : l == 'Z' ? "Forgotten King, Unbound" : l == 'P' ? "Bishop" : "Enemy";
+           l == 'Y' ? "Grand Wizard Ymir" : (l == 'J' || l == 'j') ? "Logic Keeper" : (l == 'T' || l == 't') ? "Altair" : (l == 'U' || l == 'u') ? "Smo" : (l == 'Z' || l == 'z') ? "Forgotten King, Unbound" : l == 'P' ? "Bishop" : "Enemy";
 }
+static const ItemInfo POTION_INFO[] = {                   /* the potions (rarity 0: common) */
+    { "Minor Potion", 0, "potion", "Any class", "Heals 6 HP + 5% of your max HP", "A small red vial. Tastes of copper." },
+    { "Potion", 0, "potion", "Any class", "Heals 12 HP + 10% of your max HP", "The healer's standard draught." },
+    { "Large Potion", 0, "potion", "Any class", "Heals 24 HP + 15% of your max HP", "A heavy flask that glows faintly red." },
+};
 static const ItemInfo *item_info(const char *n) {
     for (int i = 0; i < ITEM_INFO_N; i++) if (!strcmp(ITEM_INFO[i].name, n)) return &ITEM_INFO[i];
+    for (int i = 0; i < 3; i++) if (!strcmp(POTION_INFO[i].name, n)) return &POTION_INFO[i];
     return NULL;
 }
 static const char **icon_sprite(const char *ic) {
@@ -697,7 +703,7 @@ static const char **icon_sprite(const char *ic) {
         { "staff", SPR_I_STAFF }, { "dagger", SPR_I_DAGGER }, { "bow", SPR_I_BOW }, { "maul", SPR_I_MAUL },
         { "halberd", SPR_I_HALBERD }, { "spear", SPR_I_SPEAR }, { "greatsword", SPR_I_GREATSWORD }, { "shield", SPR_I_SHIELD },
         { "robe", SPR_I_ROBE }, { "helm", SPR_I_HELM }, { "hood", SPR_I_HOOD }, { "boots", SPR_I_BOOTS },
-        { "ring", SPR_I_RING }, { "amulet", SPR_I_AMULET }, { "armor", SPR_ARMOR } };
+        { "ring", SPR_I_RING }, { "amulet", SPR_I_AMULET }, { "armor", SPR_ARMOR }, { "potion", SPR_POTION } };
     for (unsigned i = 0; i < sizeof T2 / sizeof T2[0]; i++) if (!strcmp(ic, T2[i].n)) return T2[i].spr;
     return SPR_SWORD;
 }
@@ -951,7 +957,7 @@ static void draw_boss2(const char *letters, int who) {   /* who: 0 Ymir, 1 Logic
 }
 
 
-/* ---- v8 boss pieces ---- */
+/* ---- boss pieces ---- */
 static Vector2 player_px(void);
 static int gate_truth(char g) {   /* bit (a*2+b) set = that input passes */
     return g == 'A' ? 8 : g == 'V' ? 14 : g == 'X' ? 6 : g == 'a' ? 7 : g == 'v' ? 1 : g == 'E' ? 9 : 0;
@@ -1087,26 +1093,87 @@ static void exposed_mark(Rectangle b) {                    /* red flicker: takes
     float a = 0.35f + 0.25f * sinf(T * 10);
     DrawRectangleRoundedLinesEx((Rectangle){ b.x - 4, b.y - 4, b.width + 8, b.height + 8 }, 0.2f, 6, 3, Fade(C_RED, a));
 }
+static float king_blast_t, king_shake_t;                   /* the blue cannon torch's blast, and the King reeling from it */
+static int find_cannon(int *c, int *r) {
+    for (int rr = 1; rr < MAP_H - 1; rr++) for (int cc = 1; cc < MAP_W - 1; cc++) if (mc(cc, rr) == '}') { *c = cc; *r = rr; return 1; }
+    return 0;
+}
+static void draw_cannon(Rectangle t) {                    /* the blue cannon torch at the end of the throne circuit */
+    int c0, r0, powered = 0;
+    if (find_cannon(&c0, &r0)) powered = mc(c0 - 1, r0) == '=';
+    float cx = t.x + TS / 2, by = t.y + 10, pulse = 0.5f + 0.5f * sinf(T * 4);
+    DrawEllipse((int)cx, (int)(t.y + TS - 2), 15, 4, Fade(BLACK, 0.5f));
+    DrawCircleGradient((int)cx, (int)by, TS * (1.2f + 0.6f * king_blast_t), Fade(C_ICE, 0.25f + 0.15f * pulse + 0.5f * king_blast_t), BLANK);
+    sprite(SPR_BRAZIER, 16, t.x - 8, t.y - 16, 3, (Color){ 150, 175, 230, 255 }, 0);
+    float f = 1 + 0.12f * sinf(T * 14) + king_blast_t;
+    DrawTriangle((Vector2){ cx, by - 18 * f }, (Vector2){ cx - 7, by + 8 }, (Vector2){ cx + 7, by + 8 }, (Color){ 60, 140, 255, 255 });
+    DrawTriangle((Vector2){ cx, by - 11 * f }, (Vector2){ cx - 4, by + 8 }, (Vector2){ cx + 4, by + 8 }, (Color){ 170, 225, 255, 255 });
+    txtb(powered ? "FIRE!" : "CANNON", cx - 22, t.y + TS + 2, 11, powered ? C_GOLD : C_ICE);
+}
+static void draw_king_blast(void) {                       /* the blast: a huge blue beam from the cannon into the King */
+    if (king_blast_t <= 0) return;
+    int c0, r0; Rectangle kb;
+    if (!find_cannon(&c0, &r0) || !boss_rect("K", &kb)) return;
+    Vector2 a = { MAP_X + c0 * TS + TS / 2.0f, MAP_Y + r0 * TS + 4 }, b = { kb.x + kb.width / 2, kb.y + kb.height / 2 };
+    float k = king_blast_t, w = 46 * k;
+    DrawLineEx(a, b, w + 26, Fade(C_ICE, 0.25f * k));
+    DrawLineEx(a, b, w, Fade((Color){ 80, 160, 255, 255 }, 0.9f * k));
+    DrawLineEx(a, b, w * 0.4f, Fade(WHITE, k));
+    DrawCircleGradient((int)b.x, (int)b.y, 140 * (1.2f - k), Fade((Color){ 140, 200, 255, 255 }, 0.8f * k), BLANK);
+    for (int i = 0; i < 14; i++) {                       /* sparks off the impact */
+        float ang = rnd(i + 900) * 6.283f, d = (1 - k) * (60 + rnd(i + 920) * 80);
+        DrawCircle((int)(b.x + cosf(ang) * d), (int)(b.y + sinf(ang) * d), 4 * k + 1, Fade(WHITE, k));
+    }
+}
 static void draw_throne_and_king(const char *letters) {   /* phase 1: the King on his throne */
     Rectangle b;
     if (!boss_rect(letters, &b)) return;
+    if (king_shake_t > 0) b.x += sinf(T * 70) * 7 * king_shake_t;   /* the blast rocks him */
     float cx = b.x + b.width / 2, sc = 5;
     float tx = cx - 24 * sc, ty = b.y + b.height - 32 * sc + 26;
     sprite(SPR_THRONE, 32, tx, ty, sc, WHITE, 0);
     int c0 = (int)((b.x - MAP_X) / TS), r0 = (int)((b.y - MAP_Y) / TS);
     int open = mc(c0 - 1, r0 + 1) == '=';                 /* the wire into the throne */
     DrawCircleGradient((int)cx, (int)(b.y + b.height / 2), b.width * 0.7f, Fade(open ? C_GOLD : C_PURPLE, 0.16f + 0.05f * sinf(T * 2)), BLANK);
-    sprite(SPR_KING_HALF, 24, b.x, b.y + sinf(T * 1.3f) * 1.5f, b.width / 40.0f, WHITE, 1);
+    Color kt = king_shake_t > 0 ? ColorLerp(WHITE, (Color){ 140, 200, 255, 255 }, king_shake_t) : WHITE;
+    sprite(SPR_KING_HALF, 24, b.x, b.y + sinf(T * 1.3f) * 1.5f, b.width / 40.0f, kt, 1);
     if (!open) shield_bubble(b, C_GOLD, 1);
     else for (int i = 0; i < 6; i++) {                     /* sparks: the circuit's power runs through him */
         float a = T * 4 + i;
         DrawCircle((int)(cx + cosf(a) * b.width * 0.55f), (int)(b.y + b.height / 2 + sinf(a * 1.3f) * b.height * 0.5f), 3, Fade(C_GOLD, 0.9f));
     }
 }
-static void draw_unbound(void) {
-    Rectangle b;
-    if (!boss_rect("Z", &b)) return;
-    int m = unbound_mode_char();
+static int unbound_copies(Rectangle *out, int *mode, int max) {   /* his copies (z): their cells and middle letters */
+    int n = 0;
+    for (int i = 0; i < 6 && n < max; i++) {
+        EnemyHead *e = &nst[i];
+        if (!e->alive || e->w < 1 || e->h < 1 || mc(e->x + 1, e->y + 1) != 'z') continue;
+        out[n] = (Rectangle){ MAP_X + (e->x + 1) * TS, MAP_Y + (e->y + 1) * TS, e->w * TS, e->h * TS };
+        mode[n] = mc(e->x + 1 + e->w / 2, e->y + 1 + e->h / 2);
+        n++;
+    }
+    return n;
+}
+static void draw_unbound_at(Rectangle b, int m);
+static void draw_unbound(void) {                          /* the Unbound King, and any copies of him */
+    Rectangle b, cr[4]; int cm[4], nc = unbound_copies(cr, cm, 4);
+    if (boss_rect("Z", &b)) {
+        int m = unbound_mode_char();
+        if ((m == '1' || m == '0') && nc) {               /* Altair & Smo: the NOT line between his two bodies */
+            Vector2 pa = { b.x + b.width / 2, b.y + b.height / 2 }, pb = { cr[0].x + cr[0].width / 2, cr[0].y + cr[0].height / 2 };
+            DrawLineEx(pa, pb, 9, Fade(C_GOLD, 0.15f));
+            DrawLineEx(pa, pb, 3, Fade(C_GOLD, 0.85f));
+            for (int k = 0; k < 3; k++) { float f = fmodf(T * 0.7f + k / 3.0f, 1.0f); DrawCircleV((Vector2){ pa.x + (pb.x - pa.x) * f, pa.y + (pb.y - pa.y) * f }, 4, C_GOLD); }
+            Vector2 mid = { (pa.x + pb.x) / 2, (pa.y + pb.y) / 2 };
+            DrawRectangleRounded((Rectangle){ mid.x - 26, mid.y - 13, 52, 26 }, 0.5f, 6, (Color){ 40, 34, 14, 240 });
+            DrawRectangleRoundedLinesEx((Rectangle){ mid.x - 26, mid.y - 13, 52, 26 }, 0.5f, 6, 2, C_GOLD);
+            txt_c("NOT", mid.x, mid.y - 9, 17, C_GOLD, 1);
+        }
+        draw_unbound_at(b, m);
+    }
+    for (int i = 0; i < nc; i++) draw_unbound_at(cr[i], cm[i]);
+}
+static void draw_unbound_at(Rectangle b, int m) {
     float cx = b.x + b.width / 2, cy = b.y + b.height / 2;
     float side = fmaxf(fminf(b.width, b.height), 3 * TS), sc = side / 48;   /* fits the boss he imitates (small forms stand a cell taller, like the bishops) */
     float sx = cx - 24 * sc, sy = b.y + b.height - 48 * sc;
@@ -1193,6 +1260,7 @@ static int spell_kind(const char *q) {
     return !strncmp(q, "Fire", 4) ? FX_FIRE : !strncmp(q, "Frost", 5) ? FX_FROST : !strncmp(q, "Light", 5) ? FX_BOLT : !strncmp(q, "Meteor", 6) ? FX_METEOR : 0;
 }
 static void fx_from_msg(const char *m) {                  /* a new log line: start whatever effect it describes */
+    if (!strncmp(m, "The blue torch fires", 20)) { king_blast_t = 1.0f; king_shake_t = 1.0f; shake_t = 0.5f; }
     if (strstr(m, "Wizard Ymir")) {
         const char *p = strstr(m, " casts ");
         if (p && spell_kind(p + 7)) fx_add(spell_kind(p + 7), 0);
@@ -1737,10 +1805,11 @@ static void draw_bishops(void) {                           /* the Four Bishops: 
     int bc[4], br[4], n = 0;
     for (int r = 1; r < MAP_H - 1; r++) for (int c = 1; c < MAP_W - 1; c++)
         if (mc(c, r) == 'P' && mc(c - 1, r) != 'P' && mc(c, r - 1) != 'P' && n < 4) { bc[n] = c; br[n] = r; n++; }
+    int nb = n, uform = unbound_mode_char() == 'q';           /* the Unbound's Bishop form: he and his three copies are the corners */
+    Rectangle zb, cr[4]; int cm[4];
+    if (uform && n < 4 && boss_rect("Z", &zb)) { bc[n] = (int)((zb.x - MAP_X) / TS); br[n] = (int)((zb.y - MAP_Y) / TS); n++; }
+    if (uform) { int nc = unbound_copies(cr, cm, 4); for (int i = 0; i < nc && n < 4; i++) { bc[n] = (int)((cr[i].x - MAP_X) / TS); br[n] = (int)((cr[i].y - MAP_Y) / TS); n++; } }
     if (!n) return;
-    int nb = n, uform = unbound_mode_char() == 'q';           /* the Unbound's Bishop form: he is the fourth corner */
-    Rectangle zb;
-    if (uform && n < 4 && boss_rect("Zq", &zb)) { bc[n] = (int)((zb.x - MAP_X) / TS); br[n] = (int)((zb.y - MAP_Y) / TS); n++; }
     Vector2 ctr[4]; int corner[4] = { -1, -1, -1, -1 };     /* TL, TR, BR, BL */
     for (int i = 0; i < n; i++) {
         ctr[i] = (Vector2){ MAP_X + (bc[i] + 1) * TS, MAP_Y + (br[i] + 1) * TS };
@@ -1881,6 +1950,8 @@ static void draw_map(void) {
             tall_door(c, r, n, ch == '>');
         } else if ((ch == '&' || ch == '~') && (S.floor == 17 || S.floor == 30)) {
             draw_power_torch(t, ch == '&');
+        } else if (ch == '}') {
+            draw_cannon(t);
         } else if (ch == 'R' && c > 0 && c < MAP_W - 1) {
             sprite(SPR_PLAQUE, 16, t.x, t.y, 2, WHITE, 0);
             if (hover(t)) { DrawRectangleRoundedLinesEx(t, 0.3f, 6, 2, C_GOLD); }
@@ -1933,6 +2004,7 @@ static void draw_map(void) {
     }
     draw_bishops();
     draw_throne_and_king("K");
+    draw_king_blast();
     draw_boss("Dd", 2);
     draw_unbound();
     draw_boss2("Y", 0);
@@ -2118,7 +2190,7 @@ static void draw_enemies_card(Rectangle r) {
         else if (e->letter == 'J') sprite(SPR_KEEPER, 32, ic.x + 4, ic.y + 4, 1, WHITE, 0);
         else if (e->letter == 'T') sprite(SPR_ALTAIR, 32, ic.x + 4, ic.y + 4, 1, WHITE, 0);
         else if (e->letter == 'U') sprite(SPR_SMO, 32, ic.x + 4, ic.y + 4, 1, WHITE, 0);
-        else if (e->letter == 'Z') sprite(SPR_UNBOUND, 48, ic.x + 2, ic.y + 2, 0.75f, WHITE, 0);
+        else if (e->letter == 'Z' || e->letter == 'z') sprite(SPR_UNBOUND, 48, ic.x + 2, ic.y + 2, 0.75f, WHITE, 0);
         else if (e->letter == 'P') sprite(SPR_BISHOP, 32, ic.x + 4, ic.y + 4, 1, WHITE, 0);
         else sprite(enemy_sprite(e->letter), 16, ic.x + 4, ic.y + 4, 2, WHITE, 0);
         txtb(enemy_name(e->letter), row.x + 58, row.y + 7, 18, C_TEXT);
@@ -2143,8 +2215,9 @@ static void draw_enemies_card(Rectangle r) {
                 if (boss_rect("K", &kb)) { int c0 = (int)((kb.x - MAP_X) / TS), r0 = (int)((kb.y - MAP_Y) / TS); open = mc(c0 - 1, r0 + 1) == '='; }
                 if (open) { tag = "VULNERABLE"; tc = C_GOLD; } else { tag = "IMMUNE"; tc = C_DIM; }
             }
-            if (e->letter == 'Z') {
+            if (e->letter == 'Z' || e->letter == 'z') {
                 int m = unbound_mode_char();
+                if (e->letter == 'z' && (m == '1' || m == '0')) m = m == '1' ? '0' : '1';   /* his copy carries the other bit */
                 if (gate_truth((char)m)) tag = "GATE SHIELD"; else if (m == 'f') { tag = "POWER TORCHES"; tc = C_EMBER; }
                 else if (m == 'D' || m == 'd') { tag = m == 'D' ? "IN THE LIGHT" : "IN DARKNESS"; tc = C_PURPLE; }
                 else if (m == '1') { tag = "1 SHIELDED"; tc = C_GOLD; } else if (m == '0') { tag = "0 EXPOSED"; tc = C_RED; }
@@ -2183,7 +2256,8 @@ static void draw_item_tooltip(void) {                       /* hovering a specia
     if (!hover_item) return;
     const ItemInfo *ii = item_info(hover_item);
     if (!ii) { hover_item = NULL; return; }
-    Color rc = ii->rarity == 2 ? (Color){ 150, 92, 10, 255 } : (Color){ 30, 70, 150, 255 };   /* ink colours on parchment */
+    Color rc = ii->rarity == 2 ? (Color){ 150, 92, 10, 255 } : ii->rarity == 1 ? (Color){ 30, 70, 150, 255 } : (Color){ 150, 40, 40, 255 };   /* ink colours on parchment */
+    const char *rn = ii->rarity == 2 ? "LEGENDARY" : ii->rarity == 1 ? "RARE" : "POTION";
     float w = 420, x = hover_rect.x + 20, y = hover_rect.y - 150;
     if (x + w > W - 10) x = W - 10 - w;
     Rectangle c = { x, y, w, 140 };
@@ -2194,8 +2268,8 @@ static void draw_item_tooltip(void) {                       /* hovering a specia
     DrawRectangleRoundedLinesEx(c, 0, 0, 2, (Color){ 120, 88, 46, 255 });
     sprite(icon_sprite(ii->icon), 16, c.x + 12, c.y + 12, 2.5f, WHITE, 0);
     txtb(ii->name, c.x + 64, c.y + 10, 22, rc);
-    txtb(ii->rarity == 2 ? "LEGENDARY" : "RARE", c.x + 64, c.y + 36, 13, Fade(rc, 0.85f));
-    txt(ii->who, c.x + 64 + twb(ii->rarity == 2 ? "LEGENDARY" : "RARE", 13) + 12, c.y + 36, 13, (Color){ 110, 86, 56, 255 });
+    txtb(rn, c.x + 64, c.y + 36, 13, Fade(rc, 0.85f));
+    txt(ii->who, c.x + 64 + twb(rn, 13) + 12, c.y + 36, 13, (Color){ 110, 86, 56, 255 });
     wrap_text(ii->stats, c.x + 14, c.y + 60, w - 28, 16, C_INK, 1, 2);
     wrap_text(ii->desc, c.x + 14, c.y + 100, w - 28, 15, (Color){ 110, 86, 56, 255 }, 0, 2);
     hover_item = NULL;
@@ -2553,6 +2627,7 @@ static void snd_from_msg(const char *m) {
     if (has(m, "throne's wire blazes")) { snd("wire_power"); return; }
     if (has(m, "slams his throne")) { world_event(); snd("throne_slam"); return; }
     if (has(m, "has fallen...")) { snd("fake_death"); fallen_quiet = 1; return; }
+    if (starts(m, "The blue torch fires")) { snd("sunbeam"); snd_at("smo_slam", 0.12f); return; }
     if (has(m, "UNBOUND!")) { snd_stop("fake_death"); snd("king_revive"); snd_at("unbound_roar", 2.75f); fallen_quiet = 0; unbound_hold = 3.0f; return; }
     if (starts(m, "The Four Bishops") || starts(m, "The Logic Keeper and its two")) { snd("boss_intro"); return; }
     if (starts(m, "The bishops cast Smite")) { snd("sunbeam"); snd_at("player_hurt", 0.3f); return; }
@@ -2593,6 +2668,8 @@ static void snd_watch(float dt) {
     }
     msgq_n = 0;
     if (unbound_hold > 0) unbound_hold -= dt;
+    if (king_blast_t > 0) king_blast_t = fmaxf(0, king_blast_t - dt * 1.3f);
+    if (king_shake_t > 0) king_shake_t = fmaxf(0, king_shake_t - dt * 1.2f);
     if (!S.in_game) { pin = 0; prev_hidden = 0; return; }
     if (pumped) return;                                    /* the game is mid-redraw: compare once it has finished */
     int same = pin && S.floor == pf;

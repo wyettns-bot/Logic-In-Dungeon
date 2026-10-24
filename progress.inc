@@ -30,7 +30,7 @@ xpTable dd 50, 150, 280, 430, 600, 800, 1000, 1250, 1500, 1800, 2150, 2550, 3000
 classHP db 6, 5, 4              ; HP per level: Fighter, Rogue, Wizard (before CON)
 
 ; XP for killing each enemy type (normal enemies also get + 2 per floor)
-xpKill dw 10, 15, 20, 100, 500, 300, 350, 400, 250, 250, 0
+xpKill dw 10, 15, 20, 100, 500, 300, 350, 400, 250, 250, 0, 300, 0   ; (... the Unbound, a bishop, an Unbound copy)
 
 ; special numbers (must match items.py)
 SP_LIFESTEAL equ 1
@@ -558,7 +558,7 @@ xp_trick:                           ; a boss trick beaten: 15 + the floor
     popad
     ret
 
-rest_at_door:                       ; going through the door: no healing any more (v20, harder) - potions only
+rest_at_door:                       ; going through the door: no healing - potions only
     ret
     pushad
     mov eax, [playerMaxHP]

@@ -37,7 +37,7 @@ ICONS=[("STAFF",staff),("DAGGER",dagger),("BOW",bow),("MAUL",maul),("HALBERD",ha
 if __name__=='__main__':
     rows=[mk(f) for _,f in ICONS]
     render(rows,'icons.png',sc=6)
-    out=["","/* v9: item icons (16x16), drawn by art/icons.py */"]
+    out=["","/* item icons (16x16), drawn by art/icons.py */"]
     for (n,f),r in zip(ICONS,rows):
         out.append("static const char *SPR_I_%s[16] = {"%n); out+=['"%s",'%x for x in r]; out.append("};")
     open('icons.h','w').write("\n".join(out)+"\n")

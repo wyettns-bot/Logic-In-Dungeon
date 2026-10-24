@@ -18,9 +18,10 @@
 ;   floor 26     Altair and Smo: one carries a 1 (half damage), the other a 0 (+50%), and
 ;                they may swap at the end of every boss turn. When one falls the other
 ;                gets its power back at full HP.   (T/U = 1, F/H = 0, t/u = empowered)
-;   floor 30     the Forgotten King: on his throne, wired to a circuit. He can only be hurt
-;                while the wire into the throne carries a 1. At 2/3 and 1/3 HP he rewires
-;                it (the last time every gate is hidden). At 0 HP he only pretends to die:
+;   floor 30     the Forgotten King: on his throne, immune to every attack. The throne
+;                circuit ends in a blue cannon torch: power it and it blasts him for 1/6 of
+;                his health, then the torches scramble. At 2/3 and 1/3 HP he rewires the
+;                circuit (the last time every gate is hidden). At 0 HP he only pretends to die:
 ;                he rises as the Forgotten King, Unbound (7x7) and uses the other bosses'
 ;                tricks in turn, 2 rounds each, with one torch pair at the top of the room.
 ;                (his middle letter: A/V/X.. = gate shield, f = fuel, D/d = light, 1/0 = bit)
@@ -31,6 +32,8 @@ BR_YMIR   equ 4                 ; bossRoom numbers (1 Warden, 2 King, 3 Shade ar
 BR_KEEPER equ 5
 BR_DUO    equ 6
 LIGHT_R   equ 4                 ; how far a lit torch's light reaches (cells)
+CANNON_X  equ 34                ; the King's blue cannon torch, at the end of the throne circuit
+CANNON_Y  equ 6
 
 bossTypeOf dd 0, ETYPE_MINIBOSS, ETYPE_KING, ETYPE_SHADE, ETYPE_YMIR, ETYPE_KEEPER, ETYPE_ALTAIR, ETYPE_BISHOP
 bossStartX db 0, 26, 38, 22, 17, 30, 23, 2
@@ -95,10 +98,10 @@ msgWave db "Ymir releases a blue wave! The power torches blaze again."
 msgWavelen equ $- msgWave
 msgWaveHit db "Ymir's blue wave crashes into you for "
 msgWaveHitlen equ $- msgWaveHit
-msgThroneOn db "The throne's wire blazes - the King can be wounded!"
-msgThroneOnlen equ $- msgThroneOn
-msgThroneOff db "The throne goes dark. The King is untouchable again."
-msgThroneOfflen equ $- msgThroneOff
+msgBlast   db "The blue torch fires! A huge blast strikes the King for "
+msgBlastlen equ $- msgBlast
+msgBlastEnd db " - the torches go dark again."
+msgBlastEndlen equ $- msgBlastEnd
 msgRewire db "The King slams his throne! The circuit rewires itself."
 msgRewirelen equ $- msgRewire
 msgRewire2 db "The King slams his throne! Every gate goes dark - read the plaque."
@@ -117,29 +120,26 @@ msgMode3 db "The Unbound shakes the room into Ymir's tower - every lit power tor
 msgMode3len equ $- msgMode3
 msgMode4 db "The Unbound shakes the room into the Keeper's vault - two Wardens link to him. Cut both links!"
 msgMode4len equ $- msgMode4
-msgMode5 db "The Unbound shakes the room and turns quick as Altair - 1 is shielded, 0 is exposed!"
+msgMode5 db "The Unbound shakes the room and splits into Altair and Smo - 1 is shielded, 0 is exposed!"
 msgMode5len equ $- msgMode5
-msgMode6 db "The Unbound shakes the room and turns heavy as Smo - 1 is shielded, 0 is exposed!"
-msgMode6len equ $- msgMode6
-modeMsgs dd msgMode0, msgMode1, msgMode2, msgMode3, msgMode4, msgMode5, msgMode6
-modeLens dd msgMode0len, msgMode1len, msgMode2len, msgMode3len, msgMode4len, msgMode5len, msgMode6len
+modeMsgs dd msgMode0, msgMode1, msgMode2, msgMode3, msgMode4, msgMode5
+modeLens dd msgMode0len, msgMode1len, msgMode2len, msgMode3len, msgMode4len, msgMode5len
 ; the Unbound's forms, in turn: he takes each boss's size, reach and speed
 UF_WARDEN equ 0
 UF_BISHOP equ 1
 UF_SHADE  equ 2
 UF_YMIR   equ 3
 UF_KEEPER equ 4
-UF_ALTAIR equ 5
-UF_SMO    equ 6
-UF_COUNT  equ 7
+UF_DUO    equ 5                ; Altair & Smo: he splits into a quick 2x2 Unbound and a heavy 4x4 one
+UF_COUNT  equ 6
 ;            width, height, reach, move
 uFormStats db miniboss_w,miniboss_h, 1, 5     ; the Warden
            db 2,2, 99, 0                       ; a bishop (he and his three copies never move)
            db shade_w,shade_h, 3, 5            ; the Shade
            db big4_w,big4_h, 7, 4              ; Ymir (casts from 7 cells)
            db big4_w,big4_h, 2, 5              ; the Logic Keeper
-           db 2,2, 2, 6                        ; Altair (quick, a spear)
-           db big4_w,big4_h, 1, 4              ; Smo (slow, heavy)
+           db 2,2, 2, 6                        ; Altair & Smo: the quick one (a spear) ...
+duoHeavy   db big4_w,big4_h, 1, 4              ;   ... and the heavy one (slow, hits hard)
 
 plqWarden db "WARDEN - light the pair so the gate on his shield lets it through."
 plqWardenlen equ $- plqWarden
@@ -147,7 +147,7 @@ plqShade db "LANTERN - power both gates to light the lantern. The torches' cold 
 plqShadelen equ $- plqShade
 plqYmir db "POWER - a gate that outputs 1 puts out one of Ymir's power torches."
 plqYmirlen equ $- plqYmir
-plqThrone db "THRONE - power the wire that runs into the throne."
+plqThrone db "THRONE - power the circuit: the blue torch at its end blasts the King."
 plqThronelen equ $- plqThrone
 plqGate db "THRONE - gate "
 plqGatelen equ $- plqGate
@@ -178,6 +178,9 @@ isUnbound   resd 1              ;   1 once he has risen
 uMode       resd 1              ;   which boss he imitates (UF_*)
 uExtras     resd 1              ;   extra bodies he brought (enemies 1..n): bishop copies, shadow Wardens
 uDead       resd 1              ;   1 once he is truly dead (his copies can't kill him twice)
+uDuoBig     resd 1              ;   Altair & Smo form: 1 = he is the heavy one, his copy the quick one
+bfE         resd 1              ;   body_fits / place_body: which enemy's body
+ucopyBuf    resb 49
 uHits       resd 1              ;   hits taken in this form: 3 and he changes
 uSwitch     resd 1              ;   1 = change form at the next tick
 kingBit     resd 1
@@ -344,7 +347,7 @@ rect_dist:                          ; distance (in steps) from enemy ecx's body 
     ret
 
 in_light:                           ; ecx = enemy -> CF=1 if it stands in torch light   (keeps everything)
-    clc                             ; v29: the Shade's torches are cold blue fire and give no light -
+    clc                             ; the Shade's torches are cold blue fire and give no light -
     ret                             ;   only the lantern (or a light you carry) can reach it
 in_light_old:                       ; (the old rule, kept for reference)
     pushad
@@ -798,25 +801,37 @@ boss_sprite:                        ; esi = enemy type, ecx = enemy -> esi = the
 .mr:
     ret
 .u: cmp esi, ETYPE_UNBOUND
+    je .uz
+    cmp esi, ETYPE_UCOPY
     jne .n
-    push eax
+.uz:push eax
     push ecx
     push edx
     push edi
-    movzx eax, byte [unbound+ENEMY_W] ; his body at its current size, all Z ...
-    movzx ecx, byte [unbound+ENEMY_H]
-    imul ecx, eax
+    push ebx
+    mov ebx, unbound                ; his body (Z), or a copy's (z), at its current size ...
     mov edi, unboundBuf
     mov al, 'Z'
+    cmp esi, ETYPE_UCOPY
+    jne .ub
+    mov ebx, ucopy
+    mov edi, ucopyBuf
+    mov al, 'z'
+.ub:push edi
+    movzx ecx, byte [ebx+ENEMY_W]
+    movzx edx, byte [ebx+ENEMY_H]
+    imul ecx, edx
     cld
     rep stosb
-    movzx edi, byte [unbound+ENEMY_H] ; ... with the form's letter in the middle cell
-    shr edi, 1
-    movzx eax, byte [unbound+ENEMY_W]
-    imul edi, eax
+    pop edi
+    movzx edx, byte [ebx+ENEMY_H]   ; ... with the form's letter in the middle cell
+    shr edx, 1
+    movzx eax, byte [ebx+ENEMY_W]
+    imul edx, eax
     shr eax, 1
-    add edi, eax
-    mov ecx, [esp+8]                ; (the enemy, for the light test)
+    add edx, eax
+    add edi, edx
+    mov ecx, [esp+12]               ; (the enemy, for the light test and the bit)
     mov eax, [uMode]
     cmp eax, UF_WARDEN
     jne .u1
@@ -842,7 +857,7 @@ boss_sprite:                        ; esi = enemy type, ecx = enemy -> esi = the
 .u3:
     cmp eax, UF_BISHOP
     jne .u4
-    mov al, 'q'                     ; (it doesn't tell you whether he is the 1)
+    mov al, 'q'                     ; (it doesn't tell you which one is the 1)
     jmp .uset
 .u4:
     cmp eax, UF_KEEPER
@@ -853,18 +868,26 @@ boss_sprite:                        ; esi = enemy type, ecx = enemy -> esi = the
     mov al, 'w'
     jmp .uset
 .u5:
-    mov al, '0'                     ; Altair / Smo: the bit
-    cmp dword [kingBit], 0
-    je .uset
+    mov edx, [kingBit]              ; Altair & Smo: his bit; his copy carries the other one
+    test ecx, ecx
+    jz .u6
+    xor edx, 1
+.u6:mov al, '0'
+    test edx, edx
+    jz .uset
     mov al, '1'
 .uset:
-    mov [unboundBuf+edi], al
+    mov [edi], al
+    pop ebx
     pop edi
     pop edx
     pop ecx
     pop eax
     mov esi, unboundBuf
-    ret
+    cmp dword [enemyType+ecx*4], ETYPE_UCOPY
+    jne .ur
+    mov esi, ucopyBuf
+.ur:ret
 .n: mov esi, [enemySprites+esi*4]
     ret
 
@@ -928,11 +951,7 @@ boss_cut:                           ; eax = damage about to hit enemy ecx -> eax
     jmp .r
 .k: cmp ebx, ETYPE_KING
     jne .u
-    cmp dword [kingDying], 0
-    jne .zero
-    cmp dword [circOut], 0
-    je .zero                        ; the throne wire is dark: untouchable
-    jmp .r
+    jmp .zero                       ; on his throne he is immune: only the blue cannon torch hurts him
 .u: jmp .r
 .more:
     mov edx, eax
@@ -956,6 +975,19 @@ boss_glyph:                         ; eax=x, ebx=y -> al = '&' / '~' on a power 
     add esp, 4                      ; a bishop gate: al is the answer
     ret
 .nb:pop eax                         ; (bishop_glyph cleared al: x must come back whole)
+    cmp dword [bossRoom], 2         ; the King's blue cannon torch
+    jne .nk
+    cmp dword [isUnbound], 0
+    jne .nk
+    cmp dword [puzzleOn], 2
+    jne .nk
+    cmp eax, CANNON_X
+    jne .nk
+    cmp ebx, CANNON_Y
+    jne .nk
+    mov al, '}'
+    ret
+.nk:
     call ymir_layout
     jne .no
     cmp dword [puzzleOn], 2
@@ -1008,6 +1040,17 @@ ymir_layout:                        ; ZF=1 if the room has Ymir's power torches 
 
 boss_draw_objects:
     call bishop_draw_gates
+    cmp dword [bossRoom], 2         ; the King's cannon
+    jne .yl
+    cmp dword [isUnbound], 0
+    jne .yl
+    pushad
+    mov eax, CANNON_X
+    mov ebx, CANNON_Y
+    call cell_glyph
+    call put_cell
+    popad
+.yl:
     call ymir_layout
     jne .r
     pushad
@@ -1587,21 +1630,63 @@ duo_round:
 ; ---------------------------------------------------------------------
 ; the Forgotten King
 ; ---------------------------------------------------------------------
-king_torch:
+king_torch:                         ; a torch flipped: does the circuit power the blue cannon torch?
     cmp dword [isUnbound], 0
     jne .r
-    mov eax, [circOut]
-    cmp eax, [kingOpen]
+    cmp dword [kingDying], 0
+    jne .r
+    cmp dword [circOut], 0
     je .r
-    mov [kingOpen], eax
-    test eax, eax
-    jz .off
+    pushad
+    mov eax, [bossMax]              ; the blast: a sixth of his health (rounded up: 6 blasts)
+    add eax, 5
+    xor edx, edx
+    mov ebx, 6
+    div ebx
+    mov [bTmp], eax
     call xp_trick
-    msg msgThroneOn
-    ret
-.off:
-    msg msgThroneOff
+    call msg_begin
+    mtext msgBlast
+    mov eax, [bTmp]
+    call msg_num
+    mtext msgBlastEnd
+    call msg_end
+    call king_scramble              ; the cannon is spent: the torches go dark (unsolved) again
+    mov eax, [bTmp]
+    sub [enemyHP], eax
+    cmp dword [enemyHP], 0
+    jg .alive
+    mov dword [eIdx], 0
+    call kill_enemy                 ; (he only pretends to die: king_fall)
+    jmp .d
+.alive:
+    xor ecx, ecx
+    call draw_enemy
+.d: call draw_panel
+    popad
 .r: ret
+
+king_scramble:                      ; new torch settings that leave the cannon unpowered
+    pushad
+    mov dword [circTry], 200
+.st:xor edx, edx
+.sb:cmp edx, [circNT]
+    jge .se
+    push edx
+    call coin
+    pop edx
+    mov [nodeBit+edx], al
+    inc edx
+    jmp .sb
+.se:call circ_eval
+    cmp dword [circOut], 0
+    je .ok
+    dec dword [circTry]
+    jnz .st
+.ok:call circ_draw
+    call draw_room_objects
+    popad
+    ret
 
 king_rewire:                        ; eax = 0: new gates, 1: new gates, all hidden
     push eax
@@ -1711,8 +1796,8 @@ unbound_next_mode:                  ; the next form: the room shakes and becomes
     je .ymir
     cmp eax, UF_KEEPER
     je .keep
-    cmp eax, UF_WARDEN
-    jne .bit
+    cmp eax, UF_DUO
+    je .duo
     mov dword [puzzleOn], 1         ; the Warden's hall - one pair, on the side away from him
     mov dword [puzzlePairs], 1
     mov dword [puzzleAll], 0
@@ -1743,10 +1828,9 @@ unbound_next_mode:                  ; the next form: the room shakes and becomes
 .keep:                              ; the Keeper's vault - two shadow Wardens and their pairs
     call unbound_keeper
     jmp .placed
-.bit:                               ; Altair / Smo - the bit, no torches at all
-    mov dword [puzzleOn], 0
-    call coin
-    mov [kingBit], eax
+.duo:                               ; Altair & Smo - two of him, the bit, no torches at all
+    call unbound_duo
+    jmp .say
 .placed:
     call unbound_nudge              ; nobody stands inside the new things
 .say:
@@ -1768,8 +1852,10 @@ unbound_clear_stat:                 ; ecx = enemy: forget its statuses   (keeps 
     popad
     ret
 
-unbound_bishops:                    ; enemy i stands in corner (i + bishRot) & 3; enemies 1..3 are copies
+unbound_bishops:                    ; enemy i stands in corner (i + bishRot) & 3; enemies 1..3 are copies of him
     pushad
+    mov esi, uFormStats+UF_BISHOP*4 ; (2x2, they never move, they cast across the room)
+    call unbound_copy_stats
     mov eax, 4
     call rand_mod
     mov [bishRot], eax
@@ -1785,7 +1871,7 @@ unbound_bishops:                    ; enemy i stands in corner (i + bishRot) & 3
     mov [enemyY+ecx*4], edi
     test ecx, ecx
     jz .n
-    mov dword [enemyType+ecx*4], ETYPE_BISHOP
+    mov dword [enemyType+ecx*4], ETYPE_UCOPY
     mov edi, [enemyHP]              ; every copy shows his health (one shared pool)
     mov [enemyHP+ecx*4], edi
     call unbound_clear_stat
@@ -1865,8 +1951,8 @@ unbound_kill:                       ; kill_enemy, enemy ecx while he is Unbound 
     jne .done
     test ecx, ecx
     jz .him
-    cmp dword [enemyType+ecx*4], ETYPE_BISHOP
-    je .him                         ; a copy took the last of the shared pool: it was him all along
+    cmp dword [enemyType+ecx*4], ETYPE_UCOPY
+    je .him                         ; a copy took the last of the shared health: it was him all along
     pushad                          ; a shadow Warden falls: gone for good (no XP, no loot)
     mov dword [enemyHP+ecx*4], 0
     call unbound_clear_stat
@@ -1909,6 +1995,8 @@ unbound_cut:                        ; eax = damage about to hit enemy ecx while 
     jnz .r
     jmp .count
 .solo:
+    cmp edx, UF_DUO
+    je .b
     test ecx, ecx
     jnz .r
     cmp edx, UF_WARDEN
@@ -1944,11 +2032,20 @@ unbound_cut:                        ; eax = damage about to hit enemy ecx while 
     test edx, edx
     jz .more                        ; both power torches out: +50%
     jmp .count
-.b: cmp dword [kingBit], 0          ; Altair / Smo: the bit
-    je .more
+.b: mov edx, [kingBit]               ; Altair & Smo: his bit, and the opposite on his copy
+    test ecx, ecx
+    jz .bb
+    xor edx, 1
+.bb:test edx, edx
+    jz .bm
     cmp dword [attackPierce], 0
-    jne .count
-    shr eax, 1
+    jne .bs
+    shr eax, 1                      ; the 1: half
+    jmp .bs
+.bm:mov edx, eax                    ; the 0: +50%
+    shr edx, 1
+    add eax, edx
+.bs:call unbound_share              ; one shared health
     jmp .count
 .more:
     mov edx, eax
@@ -1986,17 +2083,17 @@ bishop_like:                        ; ZF=1 in the Bishops' room or the Unbound's
     cmp esp, 0
 .r: ret
 
-body_fits:                          ; eax=x, ebx=y: would enemy 0's body fit with its top-left there? CF=1 = no
+body_fits:                          ; eax=x, ebx=y: would enemy [bfE]'s body fit with its top-left there? CF=1 = no
     pushad
     mov [bfX], eax
     mov [bfY], ebx
-    xor ecx, ecx
+    mov ecx, [bfE]
     call enemy_rec
     movzx eax, byte [esi+ENEMY_W]
     mov [ew], eax
     movzx eax, byte [esi+ENEMY_H]
     mov [eh], eax
-    mov dword [ignoreE], 0
+    mov [ignoreE], ecx
     mov dword [emy], 0
 .yl: mov eax, [emy]
     cmp eax, [eh]
@@ -2035,6 +2132,131 @@ body_fits:                          ; eax=x, ebx=y: would enemy 0's body fit wit
     mov dword [ignoreE], -1
     popad
     stc
+    ret
+
+place_body:                         ; ecx = enemy, eax,ebx = where we'd like its top-left: the nearest spot it fits
+    pushad
+    mov [bfE], ecx
+    mov [aimX], eax
+    mov [aimY], ebx
+    call body_fits
+    jnc .set
+    mov dword [nuR], 1
+.r: cmp dword [nuR], 14
+    jg .d
+    mov edi, [nuR]
+    neg edi
+.y: cmp edi, [nuR]
+    jg .rn
+    mov esi, [nuR]
+    neg esi
+.x: cmp esi, [nuR]
+    jg .yn
+    mov eax, esi                    ; only the ring at distance r
+    cdq
+    xor eax, edx
+    sub eax, edx
+    push eax
+    mov eax, edi
+    cdq
+    xor eax, edx
+    sub eax, edx
+    mov ebx, eax
+    pop eax
+    cmp eax, [nuR]
+    je .ring
+    cmp ebx, [nuR]
+    jne .xn
+.ring:
+    mov eax, [aimX]
+    add eax, esi
+    mov ebx, [aimY]
+    add ebx, edi
+    call body_fits
+    jnc .set
+.xn:inc esi
+    jmp .x
+.yn:inc edi
+    jmp .y
+.rn:inc dword [nuR]
+    jmp .r
+.set:
+    mov ecx, [bfE]
+    mov [enemyX+ecx*4], eax
+    mov [enemyY+ecx*4], ebx
+.d: mov dword [bfE], 0
+    popad
+    ret
+
+unbound_copy_stats:                 ; esi = width, height, reach, move: his copies take them   (keeps all)
+    push eax
+    mov al, [esi]
+    mov [ucopy+ENEMY_W], al
+    mov al, [esi+1]
+    mov [ucopy+ENEMY_H], al
+    mov al, [esi+2]
+    mov [ucopy+ENEMY_RANGE], al
+    mov al, [esi+3]
+    mov [ucopy+ENEMY_MOVE], al
+    pop eax
+    ret
+
+unbound_duo:                        ; Altair & Smo: he becomes one of them and a copy of him the other
+    pushad
+    mov dword [puzzleOn], 0
+    call coin
+    mov [kingBit], eax              ; his bit (the copy carries the other)
+    call coin
+    mov [uDuoBig], eax
+    mov esi, duoHeavy               ; (unbound_set_size made him the quick one)
+    test eax, eax
+    jz .cp
+    mov al, [duoHeavy]              ; he is the heavy one ...
+    mov [unbound+ENEMY_W], al
+    mov al, [duoHeavy+1]
+    mov [unbound+ENEMY_H], al
+    mov al, [duoHeavy+2]
+    mov [unbound+ENEMY_RANGE], al
+    mov al, [duoHeavy+3]
+    mov [unbound+ENEMY_MOVE], al
+    mov esi, uFormStats+UF_DUO*4    ; ... and his copy the quick one
+.cp:call unbound_copy_stats
+    call unbound_nudge              ; he fits, you step aside ...
+    mov dword [enemyType+4], ETYPE_UCOPY
+    mov eax, [enemyHP]              ; ... then his copy appears beside him (one shared health)
+    mov [enemyHP+4], eax
+    mov ecx, 1
+    call unbound_clear_stat
+    mov dword [uExtras], 1
+    mov eax, [enemyX]
+    add eax, 6
+    cmp eax, 44
+    jl .x
+    mov eax, [enemyX]
+    sub eax, 6
+.x: mov ebx, [enemyY]
+    mov dword [enemyX+4], -60       ; (off the map while it looks for a spot)
+    mov dword [enemyY+4], -60
+    mov ecx, 1
+    call place_body
+    call unbound_nudge_player
+    popad
+    ret
+
+unbound_share:                      ; eax = damage about to hit body ecx: every body shows the shared health   (keeps all)
+    pushad
+    mov ebx, [enemyHP]
+    sub ebx, eax                    ; his health after the hit
+    xor edx, edx
+.l: cmp edx, [uExtras]
+    jg .d
+    cmp dword [enemyHP+edx*4], 0
+    jle .n
+    mov [enemyHP+edx*4], ebx
+.n: inc edx
+    jmp .l
+.d: add [enemyHP+ecx*4], eax        ; (the caller takes the damage off the one it hit)
+    popad
     ret
 
 unbound_nudge:                      ; move the Unbound, then you, out of anything the new room put there

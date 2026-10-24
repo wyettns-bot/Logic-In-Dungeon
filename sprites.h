@@ -290,7 +290,7 @@ static const char *SPR_BRAZIER[16] = {
 
 #endif
 
-/* v7 bosses: 32x32, drawn by the scripts in art/ (shapes plus an automatic outline) */
+/* bosses: 32x32, drawn by the scripts in art/ (shapes plus an automatic outline) */
 static const char *SPR_YMIR[32] = {
 "....kk............kkkBBk........",
 "...kIIk..........kBBBBk.........",
@@ -428,7 +428,7 @@ static const char *SPR_SMO[32] = {
 ".......khhhhhhhk.khhhhhhhk......",
 };
 
-/* v8: the Forgotten King, Unbound (48x48, drawn over 7x7 cells) and his throne (48x32) */
+/* the Forgotten King, Unbound (48x48, drawn over 7x7 cells) and his throne (48x32) */
 static const char *SPR_UNBOUND[48] = {
 "...................k...kk....k..................",
 "..................kyk.kyyk..kyk.................",
@@ -514,7 +514,7 @@ static const char *SPR_THRONE[32] = {
 ".kQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQk.",
 };
 
-/* v9: item icons (16x16), drawn by art/icons.py */
+/* item icons (16x16), drawn by art/icons.py */
 static const char *SPR_I_STAFF[16] = {
 "............kk..",
 "...........kcck.",

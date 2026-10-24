@@ -1,16 +1,20 @@
-# Logic In Dungeon (v29)
+# Logic In Dungeon
 
-The game is the assembly program (`game.asm` plus its `.inc` files, and `CC.asm`).
-`rd_gui.c` is the raylib front end. It runs the assembly game in a hidden terminal, reads what
-the game prints, and draws the interface. All game rules stay in assembly.
-`logicindungeon.asm` is the same game with every include pasted into one file (made by `python3 tools/inline_asm.py`).
+A turn-based dungeon crawler where every door is locked by logic. Thirty floors of logic-gate
+puzzles, circuits and boss fights, with three classes (Fighter, Rogue, Wizard).
+
+The game itself is written in 32-bit x86 assembly (`game.asm`, its `.inc` files, and `CC.asm`).
+`rd_gui.c` is the raylib window: it runs the assembly game in a hidden terminal, reads what the
+game prints, and draws the interface, sound and music. All game rules stay in assembly.
+`logicindungeon.asm` is the same game with every include pasted into one file (made by
+`python3 tools/inline_asm.py`).
 
 ## Build and run (Fedora)
 
     sudo dnf install nasm raylib-devel
     sh build_gui.sh          # builds ./game and ./rd_gui
-    ./rd_gui                 # raylib window
-    ./game                   # the terminal version still works on its own
+    ./rd_gui                 # the window
+    ./game                   # the terminal version also works on its own
 
 To build the single file instead:
 
@@ -21,44 +25,15 @@ To build the single file instead:
 If your raylib is built from source, run `RAYLIB_DIR=/path/to/raylib/src sh build_gui.sh`.
 
 **Step-by-step setup for Fedora, Ubuntu/Debian, Arch and Windows (through WSL2) is in `HOW_TO_RUN.md`.**
-
-## Sound and music (v16)
-
-The window plays sound effects and music. Every file is found by name, and a missing file is
-simply silent, so you can add audio a few files at a time.
-
-- Sound effects: `assets/sfx/<name>.wav` (`.ogg`, `.mp3` and `.flac` work too). Numbered files
-  (`footstep_1.wav`, `footstep_2.wav`, ...) are variants, and one is picked at random each time.
-- Music: `assets/music/<name>.ogg` (or `.mp3` / `.wav`). The tracks loop and fade between each
-  other. `victory` and `game_over` play once.
-- **F9** turns sound on and off. **F10** turns music on and off.
-- All 81 sound effects are in `assets/sfx`. Everything except the five footsteps was made from
-  scratch by `tools/audio/sfx_synth.py` (`python3 tools/audio/sfx_synth.py OUTDIR [names...]`, needs numpy
-  and scipy). See `CREDITS.txt`.
-
-Music file names (add whichever you have):
-
-| File | Plays |
-|---|---|
-| `title` | Title screen |
-| `class_select` | Choosing a hero and the character sheet (falls back to `title`) |
-| `explore` | Floors 1-15 |
-| `circuits` | Floors 16-29 (falls back to `explore`) |
-| `boss_warden`, `boss_bishops`, `boss_shade`, `boss_ymir`, `boss_keeper`, `boss_duo`, `boss_king`, `boss_unbound` | While that boss is in the room |
-| `boss_generic` | Any boss without its own track |
-| `victory`, `game_over` | Once, at the end |
-| `level_up`, `floor_clear` | Optional short jingles. `level_up` replaces the level-up sound effect |
-
-The King's fake death goes silent. The revival sound plays when he rises, and the white flash and
-the roar land on its burst.
+Screenshots of the menus, every kind of puzzle room and every boss are in `screenshots/`.
 
 ## The 30 floors
 
 | Floors | What waits there |
 |---|---|
-| 1-14 | Logic gate rooms: torch pairs, one gate, a riddle on the plaque |
+| 1-15 | Logic gate rooms: torch pairs, one gate, a riddle on the plaque. Floors 2-3 need one matching pair; from floor 4 every input the gate accepts must be shown, one pair each |
 | 4, 8 | **Warden** |
-| 12 | **The Four Bishops** (new in v20) |
+| 12 | **The Four Bishops** |
 | 15 | **Dark Shade of the Forgotten King** |
 | 16, 18-20 | Circuits: `(A ? B) ? C`, three torches and two gates |
 | 17 | **Grand Wizard Ymir** |
@@ -68,9 +43,9 @@ the roar land on its burst.
 | 26 | **Altair and Smo** |
 | 30 | **The Forgotten King**, and then the Forgotten King, **Unbound** |
 
-Boss rooms start the fight as soon as you walk in, and the door opens only when the boss (or both bosses) is dead.
-Every boss is a logic puzzle as well as a fight. Stats are in `game_assets.asm`; the rules are in `bosses.inc`.
-HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20).
+Boss rooms start the fight as soon as you walk in, and the door opens only when the boss (or both
+bosses) is dead. Every boss is a logic puzzle as well as a fight. Stats are in `game_assets.asm`;
+the rules are in `bosses.inc` and `bosses2.inc`.
 
 ## The bosses
 
@@ -78,10 +53,18 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - He takes half damage until the torch pair matches that gate.
 - The pair starts behind him. Matching it breaks the shield for 2 rounds.
 - Then he shouts "Burn anew!", his beam throws the torches to the other side of the room, and the shield returns with a new gate and the torches set wrong.
-- If someone is standing where the torches would land, they pick a free row instead.
+- The floor 4 Warden is a gentler introduction: 30-36 HP and three quarters of his damage.
+
+**The Four Bishops (floor 12, four 2x2).**
+- One in each corner, joined in a square by yellow lines (the two on the right face left). On each side stands a gate that is TRUE for the two bishops it joins.
+- One bishop is secretly the 1. The two sides touching it show XOR, the other two NOR, so the 1 is where the two XORs meet.
+- Once the 1 has been found twice, two neighbouring bishops are 1s: AND between them, XOR on the sides leaving them, NOR opposite.
+- Only a 1 can be hurt; the 0s ignore every hit. When a 1 is hurt, the light moves to another bishop and the gates change.
+- They never move. All four cast every round but only one beam lands: Smite (burns you for 2 a round, 2 rounds) and Judgment (knocks you back 2 squares), in turn.
+- One shared health pool: when it is empty all four fall.
 
 **Dark Shade (floor 15, 5x3).** The room is dark, and its torches burn with cold blue fire that gives no light.
-- The Shade takes no damage in the dark. The only way to hurt it is the lantern puzzle (or, at half damage, standing next to it while you carry a light: the Lantern Charm or the Duskplate).
+- The Shade takes no damage in the dark. The way to hurt it is the lantern puzzle (or, at half damage, standing next to it while you carry a light: the Lantern Charm or the Duskplate).
 - The left torch pair feeds one gate and the right pair another. When both output 1, the lantern in the middle blazes for 2 rounds and the Shade takes full damage anywhere.
 - The Shade hunts lit torches and snuffs one at most every other round. With NAND or NOR gates, putting a torch out can light the lantern by itself.
 - When the lantern's 2 rounds end, the Shade shatters it: new gates, and the torches go dark.
@@ -92,15 +75,7 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - He blinks away if you stand next to him.
 - With both power torches out he is stunned and takes +50% damage. Then he releases a blue wave: it pushes you away (10-16 damage if you are within 2 cells), relights both power torches and sets new gates.
 
-**The Four Bishops (floor 12, four 2x2, new in v20).**
-- One in each corner, joined in a square by yellow lines. On each side stands a gate that is TRUE for the two bishops it joins.
-- One bishop is secretly the 1. The two sides touching it show XOR, the other two NOR, so the 1 is where the two XORs meet.
-- Once the 1 has been found twice, two neighbouring bishops are 1s: AND between them, XOR on the sides leaving them, NOR opposite.
-- Only a 1 can be hurt; the 0s ignore every hit. When a 1 is hurt, the light moves to another bishop and the gates change.
-- They never move. All four cast every round but only one beam lands: Smite (burns you for 2 a round, 2 rounds) and Judgment (knocks you back 2 squares), in turn.
-- One shared health pool: when it is empty all four fall.
-
-**Logic Keeper and its two Wardens (floor 21, reworked in v20).**
+**Logic Keeper and its two Wardens (floor 21).**
 - Two Wardens fight beside the Keeper (they move and attack like any Warden), joined to it by blue links. While any Warden is linked, the Keeper can't be hurt.
 - Each Warden has its own gate on its shield and its own torch pair. Match a pair to that Warden's gate: its shield breaks and its link is cut for 4 rounds, and it reels.
 - Then it links up again with a new gate. A Warden that dies is cut for good. With both links cut the Keeper takes full damage; when it falls, its Wardens fall with it.
@@ -112,20 +87,24 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - When one falls, the bits are gone and the survivor takes the other's power: full HP, +2 to hit, +3 damage.
 
 **Forgotten King (floor 30).**
-- He stays on his throne and strikes you anywhere in the room.
-- The throne is wired to a circuit of four torches and three gates. He can only be wounded while the wire into the throne carries a 1.
+- He sits on his throne, **immune to every attack**, and strikes you anywhere in the room.
+- The throne room is a circuit of four torches and three gates. Its last wire runs to a **blue cannon torch**. Power it and the cannon fires a huge blast into the King for a sixth of his health (he shakes as it hits); then the torches go dark and you solve it again. Six blasts bring him down.
 - At 2/3 and 1/3 HP he slams the throne and the circuit rewires. The second time every gate is hidden, and each plaque read gives the riddle of the next gate (the window keeps all of them pinned).
 - At 0 HP he only pretends to die: the throne explodes and he rises as **the Forgotten King, Unbound**.
-- Unbound, he takes the form of every boss in the game, always in the same order. After you **wound** him 3 times in one form (a hit that does 0 damage doesn't count), he changes form: the screen shakes, the room becomes that boss's arena, and **his body takes that boss's size, reach and speed**. Anyone standing where something new appears is moved to the nearest free space.
-  1. **Warden (3x3):** a torch pair on the side away from him, a gate on his shield. He takes half damage until the pair matches.
-  2. **Bishops (2x2):** he splits into four. He and three bishop copies stand in the corners, with gates on the square between them. Only the 1 can be hurt, and the copies share his health. Each wound moves the 1. Their volley lands one beam (Smite or Judgment). Nobody moves. The copies vanish when the form ends, and if a copy takes the last of his health, it was him all along.
-  3. **Shade (5x3):** the Shade's circuit, lantern and cold torches. He can only be hurt while the lantern burns (or at half damage next to you if you carry a light).
-  4. **Ymir (4x4, reach 7):** Ymir's circuit and two power torches. Each lit power torch is an extra strike. With both out he takes +50%.
-  5. **Logic Keeper (4x4):** two shadow Wardens link to him, each with its own torch pair. He can't be hurt while either is linked. Match a pair to its Warden's gate to cut that link for 4 rounds. Shadow Wardens move and attack; killing one cuts it for good (no XP or loot).
-  6. **Altair (2x2, quick, reach 2):** a bit over his head. A 1 means half damage, a 0 means +50%. It can flip every round.
-  7. **Smo (4x4, slow, heavy):** the same bit.
-  Then he starts again from the Warden.
-- Killing him wins the game.
+
+**The Forgotten King, Unbound.** He takes the form of every boss in the game, always in the same
+order. After you **wound** him 3 times in one form (a hit that does 0 damage doesn't count), he
+changes form: the screen shakes, the room becomes that boss's arena, and **his body takes that
+boss's size, reach and speed**. Anyone standing where something new appears is moved to the
+nearest free space.
+1. **Warden (3x3):** a torch pair on the side away from him, a gate on his shield. He takes half damage until the pair matches.
+2. **Bishops (2x2):** he splits into **four Unbounds** in the corners, with gates on the square between them. Only the 1 can be hurt and all four share his health; each wound moves the 1. Their volley lands one beam (Smite or Judgment). Nobody moves. The copies vanish when the form ends, and if a copy takes the last of his health, it was him all along.
+3. **Shade (5x3):** the Shade's circuit, lantern and cold torches. He can only be hurt while the lantern burns (or at half damage next to you if you carry a light).
+4. **Ymir (4x4, reach 7):** Ymir's circuit and two power torches. Each lit power torch is an extra strike. With both out he takes +50%.
+5. **Logic Keeper (4x4):** two shadow Wardens link to him, each with its own torch pair. He can't be hurt while either is linked. Match a pair to its Warden's gate to cut that link for 4 rounds. Shadow Wardens move and attack; killing one cuts it for good (no XP or loot).
+6. **Altair & Smo:** he splits into **two Unbounds**, a quick 2x2 one (reach 2, lightning) and a heavy 4x4 one (slams), joined by the NOT line. One carries the 1 (half damage), the other the 0 (+50%), and they may swap every round. They share his health.
+
+Then he starts again from the Warden. Killing him wins the game.
 
 **What the terminal shows**
 - Warden: the gate letter in the middle of his body, or `B` when the shield is broken.
@@ -134,37 +113,29 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - Logic Keeper: `J` linked (can't be hurt), `j` open.
 - Bishops: `P`; the gates on the square are their letters (`A` AND, `X` XOR, `v` NOR).
 - Altair and Smo: `T` / `U` carry the 1, `F` / `H` carry the 0, `t` / `u` are empowered.
-- Unbound King (`Z`, his size changes with the form): his middle letter is the gate (Warden), `q` (Bishops; his copies are `P`), `D` / `d` (Shade), `f` (Ymir), `W` linked / `w` open (Keeper), or `1` / `0` (Altair and Smo).
+- The King's blue cannon torch: `}`.
+- Unbound King: `Z` (his copies are `z`). His middle letter is the gate (Warden), `q` (Bishops), `D` / `d` (Shade), `f` (Ymir), `W` linked / `w` open (Keeper), or `1` / `0` (Altair & Smo).
 
-The sprites are drawn by the Python scripts in `art/` (shapes plus an automatic outline). `art/all.png` and `art/unbound.png` are previews.
+## Classes, levels and healing
 
-## The name (v12)
+**Starting HP:** Fighter 12, Rogue 11, Wizard 9.
+- **Fighter:** Battle Master maneuvers with superiority dice, Parry, Rally and Action Surge.
+- **Rogue:** starts with a Rapier. **Cunning Action:** in a fight, hiding costs 3 movement instead of your attack, so you can step away, hide, step back and sneak attack in one turn. At the end of the enemy turn, any enemy within 3 cells finds you.
+- **Wizard:** spells cost mana, which comes back over time (faster in a fight).
 
-The game is now called **Logic In Dungeon** (it was Register Dungeon): the title screen, the window title and the victory text use the new name, and the single-file version is `logicindungeon.asm`.
+**Healing.** Going through a door does not heal you; potions do.
 
-## The look (v11)
+| Potion | Heals |
+|---|---|
+| Minor Potion | 6 HP + 5% of your max HP |
+| Potion | 12 HP + 10% of your max HP |
+| Large Potion | 24 HP + 15% of your max HP |
 
-The window uses a Stone & Iron theme: notched stone panels with chiselled edges and iron rivets, bronze title plaques, stone-tablet buttons that press in, square iron key tags, segmented troughs for HP (blood red), mana and XP, and parchment for item tooltips and the plaque's riddle. Only colours and shapes changed; the layout is the same. The palette is at the top of `rd_gui.c` (`C_BG`, `C_CARD`, `C_BRONZE`, ...).
-
-## Balance changes in v10 (after playtesting)
-
-- **Resting:** going through a door heals a third of your max HP.
-- **Floors 1-2:** only 2-3 enemies, and floor 1 has no skeletons.
-- **The floor 4 Warden:** 30-36 HP and three quarters of his damage. The floor 8 Warden is unchanged.
-- **Starting HP:** Fighter 12, Rogue 11, Wizard 9.
-- **Rogue:**
-  - Starts with a Rapier.
-  - **Cunning Action:** in a fight, hiding costs 3 movement instead of your attack, so you can step away, hide, step back and sneak attack in one turn.
-  - At the end of the enemy turn, any enemy within 3 cells finds you, so you can't hide every turn to stay untouchable.
-
-The bot playtest (`tools/playbot.py`) plays the real game. With these changes, all three classes reached floor 15 in every run, at level 10-11.
-
-## Levels (1-20)
-
+**Levels (1-20).**
 - **XP sources:**
   - Kills: goblin 10, skeleton 15, orc 20, plus 2 per floor. Bosses are worth 100-500.
   - Solving a room's puzzle: 25 + floor, or 40 + 2 x floor for a circuit.
-  - Beating a boss trick: 15 + floor. Tricks are breaking a shield, lighting the lantern, putting out a power torch, breaking the ward, or powering the throne.
+  - Beating a boss trick: 15 + floor. Tricks are breaking a shield, lighting the lantern, putting out a power torch, cutting a Warden's link, finding the bishops' 1, or firing the King's cannon.
 - **HP per level:** Fighter 6, Rogue 5, Wizard 4, plus your CON modifier. You heal by the amount you gain.
 - **Stat points:** every even level gives one. In the window, click a stat box at the top. In the terminal, press **U** and then 1 STR, 2 DEX, 3 CON or 4 INT. A stat can go up to 24.
 - **Modifiers:** every stat counts as **(stat - 10) / 2**, so 16 is +3. Damage, superiority dice, spells, AC and HP all use it.
@@ -184,13 +155,16 @@ The bot playtest (`tools/playbot.py`) plays the real game. With these changes, a
 | 19 | Heal 2 HP a round | Sneak attack 6d6 | Cantrips: another die |
 | 20 | Action Surge 3 times | Sneak attacks pierce shields | Spells +50% damage |
 
-Enemies scale too: normal enemies get +2/3 HP per floor and +1 damage every 5 floors, and the bosses have more HP than in v8.
+**Enemies.** Floors 1-2 hold 2-3 enemies (no skeletons on floor 1), floors 3-6 hold 3-4, floors 7-14
+hold 4-5 and floors 15+ hold 5-6. Every enemy gets +1 HP per floor; from floor 5 they deal more
+damage and from floor 8 they hit more often. From floor 9, bosses get +25% HP and damage. Bosses
+can't be put to sleep, held, knocked down, blinded or frightened.
 
 ## Special items (38, all defined in `tools/items.py`)
 
-There are three new gear slots: helmet, boots and a trinket (ring or amulet), on top of weapon, body armor and shield.
+Gear slots: weapon, body armor, shield, helmet, boots and a trinket (ring or amulet).
 - The bag marks rare items with `+` (blue in the window) and legendary items with `#` (gold).
-- In the window, hovering an item shows what it does.
+- In the window, hovering an item (or a potion) shows what it does.
 - Rare items drop from the floor shown, and only ones your class can use.
 - Each boss always drops the legendary made for your class.
 
@@ -243,6 +217,43 @@ To add or change an item, edit `tools/items.py` and run `python3 tools/items.py`
   - The centre letter is the gate type: `A` AND, `V` OR, `X` XOR, `a` NAND, `v` NOR, `E` XNOR, `N` NOT, `?` hidden.
 - In the window, gates are drawn as real gate symbols with a 0/1 badge on each output, and powered wires glow.
 
+## Sound and music
+
+The window plays sound effects and music. Every file is found by name, and a missing file is
+simply silent.
+
+- Sound effects: `assets/sfx/<name>.wav` (`.ogg`, `.mp3` and `.flac` work too). Numbered files
+  (`footstep_1.wav`, `footstep_2.wav`, ...) are variants, and one is picked at random each time.
+- Music: `assets/music/<name>.ogg` (or `.mp3` / `.wav`). The tracks loop and fade between each
+  other. `victory` and `game_over` play once.
+- **F9** turns sound on and off. **F10** turns music on and off. The Options menu has separate
+  volumes for master, music and sound effects.
+- Everything except the five footsteps was made from scratch by `tools/audio/sfx_synth.py`
+  (`python3 tools/audio/sfx_synth.py OUTDIR [names...]`, needs numpy and scipy). See `CREDITS.txt`.
+
+Music file names (add whichever you have):
+
+| File | Plays |
+|---|---|
+| `title` | Title screen |
+| `class_select` | Choosing a hero and the character sheet (falls back to `title`) |
+| `explore` | Floors 1-15 |
+| `circuits` | Floors 16-29 (falls back to `explore`) |
+| `boss_warden`, `boss_bishops`, `boss_shade`, `boss_ymir`, `boss_keeper`, `boss_duo`, `boss_king`, `boss_unbound` | While that boss is in the room |
+| `boss_generic` | Any boss without its own track |
+| `victory`, `game_over` | Once, at the end |
+| `level_up`, `floor_clear` | Optional short jingles. `level_up` replaces the level-up sound effect |
+
+The King's fake death goes silent. The revival sound plays when he rises, and the white flash and
+the roar land on its burst.
+
+## The look
+
+The window uses a Stone & Iron theme: notched stone panels with chiselled edges and iron rivets,
+bronze title plaques, stone-tablet buttons that press in, segmented troughs for HP, mana and XP,
+and parchment for item tooltips and the plaque's riddle. The palette is at the top of `rd_gui.c`.
+The sprites are drawn by the Python scripts in `art/` (shapes plus an automatic outline).
+
 ## Files
 
 | File | Contents |
@@ -255,7 +266,7 @@ To add or change an item, edit `tools/items.py` and run `python3 tools/items.py`
 | `progress.inc` | Levels, XP, perks, stat points, what your gear adds |
 | `tools/playbot.py` | A bot that plays the real game in a terminal emulator and logs each floor (`CLS=1 MAXFLOOR=14 python3 tools/playbot.py`; needs `pip install pyte`, uses `tools/h.py`) |
 | `tools/items.py` | Every special item: makes `items_rec.inc`, `items_cat.inc`, `items_loot.inc`, `gui_items.h` |
-| `bosses.inc` | Ymir's spells, the Keeper's ward and second phase, Altair and Smo, the Unbound King's seven forms |
+| `bosses.inc` | The Warden, Shade, Ymir, Altair and Smo, the Forgotten King and his cannon, the Unbound King's six forms |
 | `circuits.inc` | Circuit layouts. Generated by `python3 tools/gen_circuits.py`, which also checks that no wires touch |
 | `enemies.inc` | Enemy types and AI |
 | `features.inc` | Inventory, loot, Battle Master, stealth |

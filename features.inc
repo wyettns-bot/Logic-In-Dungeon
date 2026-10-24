@@ -419,7 +419,17 @@ equip_item:                     ; eax = bag slot. Weapons/armor are worn, potion
 use_potion:                     ; eax = bag slot: heal, and the potion is used up
     mov esi, [inv+eax*4]
     mov edi, [esi+CAT_PTR]
-    movzx ebx, byte [edi]       ; heal amount
+    push edx
+    push eax
+    movzx eax, byte [edi+1]     ; heal: a flat amount + a share of your max HP
+    imul eax, [playerMaxHP]
+    xor edx, edx
+    mov ebx, 100
+    div ebx
+    movzx ebx, byte [edi]
+    add ebx, eax
+    pop eax
+    pop edx
     add ebx, [playerHP]
     cmp ebx, [playerMaxHP]
     jle .h

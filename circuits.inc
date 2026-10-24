@@ -45,12 +45,11 @@ circ_Y_wires dw 56
 circ_Y_out db 4
 circ_K_torches db 4, 8,0, 8,4, 8,8, 8,12
 circ_K_gates db 3, 0,1,17,2, 2,3,17,10, 4,5,26,6
-circ_K_wires dw 52
+circ_K_wires dw 48
     db 11,0,0, 12,0,0, 13,0,0, 14,0,0, 15,0,0, 15,1,0, 11,4,1, 12,4,1, 13,4,1, 14,4,1, 15,4,1, 15,3,1
     db 11,8,2, 12,8,2, 13,8,2, 14,8,2, 15,8,2, 15,9,2, 11,12,3, 12,12,3, 13,12,3, 14,12,3, 15,12,3, 15,11,3
     db 19,2,4, 20,2,4, 21,2,4, 22,2,4, 23,2,4, 24,2,4, 24,3,4, 24,4,4, 24,5,4, 19,10,5, 20,10,5, 21,10,5
     db 22,10,5, 23,10,5, 24,10,5, 24,9,5, 24,8,5, 24,7,5, 28,6,6, 29,6,6, 30,6,6, 31,6,6, 32,6,6, 33,6,6
-    db 34,6,6, 35,6,6, 36,6,6, 37,6,6
 circ_K_out db 6
 circTorchTab dd circ_A_torches, circ_C_torches, circ_B_torches, circ_S_torches, circ_Y_torches, circ_K_torches
 circGateTab dd circ_A_gates, circ_C_gates, circ_B_gates, circ_S_gates, circ_Y_gates, circ_K_gates

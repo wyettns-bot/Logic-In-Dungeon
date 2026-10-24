@@ -657,8 +657,11 @@ enemies_attack:                 ; end of the enemy turn: everyone in range attac
     call bishop_act                 ; the bishops' volley (bosses2.inc)
     jmp .n
 .unb2:
+    cmp dword [enemyType+ecx*4], ETYPE_UCOPY
+    je .unbc                        ; (a copy of the Unbound King fights like him)
     cmp dword [enemyType+ecx*4], ETYPE_UNBOUND
     jne .plain
+.unbc:
     call unbound_act            ; the Unbound King may strike several times
     jmp .n
 .plain:
