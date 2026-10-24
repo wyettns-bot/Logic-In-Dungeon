@@ -5,7 +5,7 @@ commands from a script file, and logs every game message to a file:
 
     key <text>          type keys (\\n = Enter)
     uiclick <x> <y>     click at window coordinates
-    shot <name>         screenshot (saved in tools/tests/build/)
+    shot <name>         screenshot (moved into tools/tests/build/)
     dump <path>         write the game's 80x26 text screen to a file
     quit
 """
@@ -65,14 +65,18 @@ def screen(wait=0.4):
 
 
 def shot(name, wait=0.35):
-    """Screenshot of the window -> build/<name>."""
-    time.sleep(wait); p = os.path.join(BUILD, name)
-    if os.path.exists(p): os.remove(p)
+    """Screenshot of the window -> build/<name>. (raylib saves it in the window's working folder,
+    the project root, so it is moved into build/ once written.)"""
+    time.sleep(wait)
+    raw, p = os.path.join(ROOT, name), os.path.join(BUILD, name)
+    for f in (raw, p):
+        if os.path.exists(f): os.remove(f)
     cmd("shot " + name)
     for _ in range(80):
         time.sleep(0.05)
-        if os.path.exists(p) and os.path.getsize(p) > 1000: break
-    time.sleep(0.2)
+        if os.path.exists(raw) and os.path.getsize(raw) > 1000: break
+    time.sleep(0.3)
+    if os.path.exists(raw): shutil.move(raw, p)
     return p
 
 
