@@ -133,7 +133,11 @@ enemy_cell_char:                ; ecx = enemy, eax = column, ebx = row inside it
     pop eax
     ret
 
-draw_enemy:                     ; ecx = enemy: draw every cell of its body
+draw_enemy:                     ; ecx = enemy: draw every cell of its body (nothing if it is dead)
+    cmp dword [enemyHP+ecx*4], 0
+    jg .alive
+    ret
+.alive:
     pushad
     call enemy_rec
     movzx eax, byte [esi+ENEMY_W]
@@ -209,23 +213,13 @@ set_area_to_enemy:              ; ecx = enemy -> [rx],[ry],[rw],[rh] = its body
 enemy_rooted:                   ; ecx = enemy -> CF=1 if it must never leave its place   (keeps all)
     push esi
     call enemy_rec
-    cmp byte [esi+ENEMY_MOVE], 0    ; (speed 0: the bishops, the Forgotten King, the Unbound's bishop form)
+    cmp byte [esi+ENEMY_MOVE], 1    ; speed 0 (the bishops, the Forgotten King, the Unbound's bishop form): CF=1
     pop esi
-    je .yes
-    cmp dword [enemyType+ecx*4], ETYPE_MINIBOSS
-    jne .no
-    call keeper_like                ; a Warden guarding the Keeper (or the Unbound's Keeper form)
-    jne .no
-.yes:
-    stc
-    ret
-.no:
-    clc
     ret
 
 enemy_move_to:                  ; move enemy [eI] so its top-left is at [nX],[nY] - only if its WHOLE body fits there
     mov ecx, [eI]
-    call enemy_rooted           ; bishops, the King on his throne, the Keeper's Wardens never move
+    call enemy_rooted           ; the bishops and the King on his throne never move
     jc .no
     mov eax, [nX]
     cmp eax, [enemyX+ecx*4]
@@ -290,13 +284,29 @@ enemy_move_to:                  ; move enemy [eI] so its top-left is at [nX],[nY
 .no:
     ret
 
-enemy_step_toward_player:       ; enemy [eI] takes one step, aiming its MIDDLE at you
-    mov ecx, [eI]                   ; one-cell enemies find the way round things (path.inc)
+enemy_step_toward_player:       ; enemy [eI] takes one step toward you, finding the way round things (path.inc)
+    mov ecx, [eI]
     call enemy_rec
     cmp byte [esi+ENEMY_W], 1
-    jne .straight
+    jne .big
     cmp byte [esi+ENEMY_H], 1
-    jne .straight
+    je .small
+.big:                               ; a big body: route its top-left over every spot where it fits
+    call pf_build_big
+    mov ecx, [eI]
+    mov eax, [enemyX+ecx*4]
+    mov ebx, [enemyY+ecx*4]
+    call pf_dist_at
+    test edx, edx
+    jz .stay                        ; you are already within its reach
+    cmp edx, 255
+    je .straight                    ; no way round (or it stands somewhere odd): old straight step
+    call pf_next
+    jc .straight
+    mov [nX], eax
+    mov [nY], ebx
+    jmp enemy_move_to
+.small:
     mov [pfIgnore], ecx
     mov dword [pfMeBlocks], 0
     mov eax, [playerX]

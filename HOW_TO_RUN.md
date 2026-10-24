@@ -18,7 +18,7 @@ Every route ends the same way: unzip the folder, run `sh build_gui.sh`, then `./
 
        cd ~/Downloads
        unzip logic_in_dungeon.zip -d ~/
-       cd ~/logic_in_dungeon_v27
+       cd ~/logic_in_dungeon_v28
 
    (Use the folder name the zip actually unpacks to.)
 
@@ -50,7 +50,7 @@ If that package is missing, or the build fails, build raylib 5.5 from source. It
     git clone --depth 1 --branch 5.5 https://github.com/raysan5/raylib.git
     cd raylib/src
     make PLATFORM=PLATFORM_DESKTOP
-    cd ~/logic_in_dungeon_v27
+    cd ~/logic_in_dungeon_v28
     RAYLIB_DIR=$HOME/raylib/src sh build_gui.sh
     ./rd_gui
 
@@ -100,7 +100,7 @@ Your Windows drive appears inside Ubuntu as `/mnt/c`. Copy the zip into your Lin
     cp /mnt/c/Users/<YourWindowsName>/Downloads/logic_in_dungeon.zip ~/
     cd ~
     unzip logic_in_dungeon.zip -d ~/
-    cd ~/logic_in_dungeon_v27
+    cd ~/logic_in_dungeon_v28
     RAYLIB_DIR=$HOME/raylib/src sh build_gui.sh
     ./rd_gui
 
@@ -108,7 +108,7 @@ The game opens in its own window on your Windows desktop.
 
 **Next time,** open **Ubuntu** from the Start menu and run:
 
-    cd ~/logic_in_dungeon_v27 && ./rd_gui
+    cd ~/logic_in_dungeon_v28 && ./rd_gui
 
 ---
 

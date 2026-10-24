@@ -14,7 +14,7 @@
 ;              its own torch pair beside it: match the pair to that Warden's gate and its
 ;              shield breaks and its link is cut for 4 rounds (it reels, too). Then it links
 ;              up again with a new gate. A Warden that dies is cut for good. The Wardens
-;              stand guard (they don't move); only the Keeper comes for you.
+;              move and fight like any Warden. A dead Warden's link is cut for good.
 ; =====================================================================
 
 section .data

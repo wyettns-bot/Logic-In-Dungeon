@@ -885,11 +885,6 @@ enemy_phase_tick:
 .go:
     call enemy_rec
     movzx eax, byte [esi+ENEMY_MOVE]
-    call keeper_like                    ; the Keeper's Wardens stand guard beside it (and the Unbound's)
-    jne .mv
-    cmp dword [enemyType+ecx*4], ETYPE_MINIBOSS
-    jne .mv
-    xor eax, eax
 .mv:
     mov edx, ESTEPS
     sub edx, [enemySteps]       ; which step of the enemy turn this is (0..3)

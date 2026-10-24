@@ -1,4 +1,4 @@
-# Logic In Dungeon (v27)
+# Logic In Dungeon (v28)
 
 The game is the assembly program (`game.asm` plus its `.inc` files, and `CC.asm`).
 `rd_gui.c` is the raylib front end. It runs the assembly game in a hidden terminal, reads what
@@ -101,7 +101,7 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
 - One shared health pool: when it is empty all four fall.
 
 **Logic Keeper and its two Wardens (floor 21, reworked in v20).**
-- Two Wardens stand guard beside the Keeper (they don't move), joined to it by blue links. While any Warden is linked, the Keeper can't be hurt.
+- Two Wardens fight beside the Keeper (they move and attack like any Warden), joined to it by blue links. While any Warden is linked, the Keeper can't be hurt.
 - Each Warden has its own gate on its shield and its own torch pair. Match a pair to that Warden's gate: its shield breaks and its link is cut for 4 rounds, and it reels.
 - Then it links up again with a new gate. A Warden that dies is cut for good. With both links cut the Keeper takes full damage; when it falls, its Wardens fall with it.
 - The plaque gives both Wardens' riddles.
@@ -121,7 +121,7 @@ HP is the base roll; every enemy also gets +1 HP per floor, and bosses +25% (v20
   2. **Bishops (2x2):** he splits into four. He and three bishop copies stand in the corners, with gates on the square between them. Only the 1 can be hurt, and the copies share his health. Each wound moves the 1. Their volley lands one beam (Smite or Judgment). Nobody moves. The copies vanish when the form ends, and if a copy takes the last of his health, it was him all along.
   3. **Shade (5x3):** the Shade's circuit and lantern. He can only be hurt in torch light, or anywhere while the lantern burns.
   4. **Ymir (4x4, reach 7):** Ymir's circuit and two power torches. Each lit power torch is an extra strike. With both out he takes +50%.
-  5. **Logic Keeper (4x4):** two shadow Wardens link to him, each with its own torch pair. He can't be hurt while either is linked. Match a pair to its Warden's gate to cut that link for 4 rounds. Shadow Wardens don't move, and killing one cuts it for good (no XP or loot).
+  5. **Logic Keeper (4x4):** two shadow Wardens link to him, each with its own torch pair. He can't be hurt while either is linked. Match a pair to its Warden's gate to cut that link for 4 rounds. Shadow Wardens move and attack; killing one cuts it for good (no XP or loot).
   6. **Altair (2x2, quick, reach 2):** a bit over his head. A 1 means half damage, a 0 means +50%. It can flip every round.
   7. **Smo (4x4, slow, heavy):** the same bit.
   Then he starts again from the Warden.

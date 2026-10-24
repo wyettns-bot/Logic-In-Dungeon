@@ -4,7 +4,8 @@
 ; pf_build fills a distance map: how many steps every cell is from a target, walking in 8
 ; directions and going around doors, plaques, torches, gates and other bodies. pf_next then
 ; picks the neighbour that is one step closer. The player walks this way, the path preview
-; follows it, and small enemies use it to reach you.
+; follows it, and small enemies use it to reach you. pf_build_big does the same for a big
+; body: it maps every place its top-left corner could stand with the whole body fitting.
 ;
 ; The window also gets the preview as an invisible message (an "OSC" escape code that a
 ; normal terminal ignores), so it can draw the path and spell areas itself without the game
@@ -24,6 +25,10 @@ section .bss
 pfDist  resb GRID_W*GRID_H               ; 255 = can't get there
 pfBlk   resb GRID_W*GRID_H
 pfQ     resd GRID_W*GRID_H
+pfPos   resb GRID_W*GRID_H               ; big bodies: 1 = its top-left can't be here (the body wouldn't fit)
+pbW     resd 1                           ; the big body being routed: width, height, reach
+pbH     resd 1
+pbR     resd 1
 pfIgnore resd 1                          ; this enemy's own body doesn't block it (-1 = none)
 pfMeBlocks resd 1                        ; 1 = the player's cell blocks (for enemies)
 pfTX    resd 1
@@ -143,6 +148,163 @@ pf_build:                               ; eax=target x, ebx=target y. Uses [pfIg
     jmp .n
 .done:
     popad
+    ret
+
+pf_build_big:                           ; ecx = a big enemy: map how many steps its top-left is from
+    pushad                              ;   any spot where its body has you within its reach
+    mov [pfIgnore], ecx
+    mov dword [pfMeBlocks], 1           ; (it can't stand on you)
+    call enemy_rec
+    movzx eax, byte [esi+ENEMY_W]
+    mov [pbW], eax
+    movzx eax, byte [esi+ENEMY_H]
+    mov [pbH], eax
+    movzx eax, byte [esi+ENEMY_RANGE]
+    cmp eax, 1
+    jge .rg
+    mov eax, 1
+.rg:mov [pbR], eax
+    mov eax, -1                         ; 1) what blocks (no target: no spreading yet)
+    mov ebx, -1
+    call pf_build
+    xor edi, edi                        ; 2) every top-left spot: does the body fit? is it a goal?
+    xor esi, esi                        ;    edi = queue tail
+    xor ebx, ebx
+.py:cmp ebx, GRID_H
+    jge .bfs
+    xor eax, eax
+.px:cmp eax, GRID_W
+    jge .pny
+    call pf_idx
+    mov byte [pfPos+ecx], 1
+    push eax
+    push ebx
+    mov edx, eax                        ; the body's right edge / bottom edge must be inside
+    add edx, [pbW]
+    cmp edx, GRID_W
+    ja .nofit
+    mov edx, ebx
+    add edx, [pbH]
+    cmp edx, GRID_H
+    ja .nofit
+    xor ebp, ebp                        ; every cell of the body free?
+.fy:cmp ebp, [pbH]
+    jge .fit
+    xor edx, edx
+.fx:cmp edx, [pbW]
+    jge .fyn
+    push eax
+    push ebx
+    add eax, edx
+    add ebx, ebp
+    push ecx
+    call pf_idx
+    cmp byte [pfBlk+ecx], 0
+    pop ecx
+    pop ebx
+    pop eax
+    jne .nofit
+    inc edx
+    jmp .fx
+.fyn:
+    inc ebp
+    jmp .fy
+.fit:
+    mov byte [pfPos+ecx], 0
+    call pb_gap                         ; eax,ebx = top-left -> edx = steps between body and you
+    cmp edx, [pbR]
+    jg .nofit
+    mov byte [pfDist+ecx], 0            ; in reach from here: a goal
+    mov [pfQ+edi*4], ecx
+    inc edi
+.nofit:
+    pop ebx
+    pop eax
+    inc eax
+    jmp .px
+.pny:
+    inc ebx
+    jmp .py
+.bfs:                                   ; 3) spread out from every goal over spots where it fits
+    xor esi, esi
+.q: cmp esi, edi
+    jge .done
+    mov ecx, [pfQ+esi*4]
+    inc esi
+    mov eax, ecx
+    xor edx, edx
+    mov ebx, GRID_W
+    div ebx                             ; eax = y, edx = x
+    mov [pfY], eax
+    mov [pfX], edx
+    movzx ebp, byte [pfDist+ecx]
+    inc ebp
+    cmp ebp, 250
+    jae .q
+    xor ecx, ecx
+.n: cmp ecx, 8
+    jge .q
+    mov eax, [pfX]
+    add eax, [pfDX+ecx*4]
+    mov ebx, [pfY]
+    add ebx, [pfDY+ecx*4]
+    cmp eax, GRID_W
+    jae .nn
+    cmp ebx, GRID_H
+    jae .nn
+    push ecx
+    call pf_idx
+    cmp byte [pfPos+ecx], 0
+    jne .nn2
+    cmp byte [pfDist+ecx], 255
+    jne .nn2
+    mov edx, ebp
+    mov [pfDist+ecx], dl
+    mov [pfQ+edi*4], ecx
+    inc edi
+.nn2:
+    pop ecx
+.nn:
+    inc ecx
+    jmp .n
+.done:
+    popad
+    ret
+
+pb_gap:                                 ; eax,ebx = a big body's top-left ([pbW] x [pbH]) -> edx = its distance to you   (keeps the rest)
+    push eax
+    push ebx
+    push ecx
+    xor ecx, ecx                        ; dx
+    cmp [playerX], eax
+    jge .r1
+    mov ecx, eax
+    sub ecx, [playerX]
+    jmp .y
+.r1:add eax, [pbW]
+    dec eax
+    cmp [playerX], eax
+    jle .y
+    mov ecx, [playerX]
+    sub ecx, eax
+.y: xor edx, edx                        ; dy
+    cmp [playerY], ebx
+    jge .r2
+    mov edx, ebx
+    sub edx, [playerY]
+    jmp .m
+.r2:add ebx, [pbH]
+    dec ebx
+    cmp [playerY], ebx
+    jle .m
+    mov edx, [playerY]
+    sub edx, ebx
+.m: cmp edx, ecx
+    jge .r
+    mov edx, ecx
+.r: pop ecx
+    pop ebx
+    pop eax
     ret
 
 pf_dist_at:                             ; eax=x, ebx=y -> edx = steps from the target (255 = none)
