@@ -120,10 +120,12 @@ msgSteal db "You drink "
 msgSteallen equ $- msgSteal
 pickRarity db " (rare)", " (LEGENDARY)"
 
+TRICK_XP_MAX equ 3                 ; boss tricks that pay XP on each floor
 section .bss
 playerLevel resd 1
 playerXP    resd 1
 statPoints  resd 1
+trickCount  resd 1              ; boss tricks paid for on this floor (see xp_trick)
 statPick    resd 1              ; 1 = the next key 1-4 raises a stat
 hpGained    resd 1              ; HP from levels (class die only; CON is added on top)
 baseStat    resd 4              ; STR DEX CON INT before gear
@@ -227,6 +229,7 @@ init_progress:                      ; after character creation (stats are set)
     mov dword [playerLevel], 1
     mov dword [playerXP], 0
     mov dword [statPoints], 0
+    mov dword [trickCount], 0
     mov dword [statPick], 0
     mov dword [hpGained], 0
     mov dword [lvLen], 0
@@ -550,13 +553,16 @@ xp_puzzle:                          ; a room's puzzle is solved
     popad
     ret
 
-xp_trick:                           ; a boss trick beaten: 15 + the floor
+xp_trick:                           ; a boss trick beaten: 15 + the floor - only the first 3 on each floor pay
+    cmp dword [trickCount], TRICK_XP_MAX   ; (so a boss's trick can't be repeated to farm experience;
+    jae .r                                 ;  restarting the room doesn't reset the count, a new floor does)
+    inc dword [trickCount]
     pushad
     mov eax, [floorCount]
     add eax, 15
     call gain_xp
     popad
-    ret
+.r: ret
 
 rest_at_door:                       ; going through the door: no healing - potions only
     ret

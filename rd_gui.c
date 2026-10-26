@@ -2560,6 +2560,7 @@ static int weapon_ranged(void) {
 static void world_event(void) { snd_cancel_world(); }        /* a boss moved the torches: no torch clicks for it */
 
 static void snd_from_msg(const char *m) {
+    if (!strncmp(m, "A new descent begins", 20)) reset_now = 1;           /* "Play again": a fresh run - no item or HP sounds for the reset */
 #ifdef RD_TEST
     { static FILE *ml; if (!ml && getenv("RD_MSGLOG")) ml = fopen(getenv("RD_MSGLOG"), "a"); if (ml) { fprintf(ml, "%s\n", m); fflush(ml); } }   /* tests: every log line */
 #endif
@@ -2601,7 +2602,6 @@ static void snd_from_msg(const char *m) {
     if (starts(m, "You slip")) { snd("hide"); return; }
     if (starts(m, "You were spotted")) { snd("spotted"); return; }
     if (starts(m, "Room cleared")) { snd("@floor_clear"); return; }
-    if (starts(m, "Arena reset")) { reset_now = 1; return; }
     /* doors and plaques */
     if (starts(m, "The guardian falls")) { snd("boss_death"); snd_at("door_open", 1.6f); return; }
     if (has(m, "door grinds open")) { snd_at("door_open", 0.3f); return; }
@@ -2966,9 +2966,9 @@ static void title_screen(void) {
     txt("A '?\?\?' gate is hidden: click the plaque by the door and it tells you that gate's riddle.", lx, y + 54, 18, C_TEXT);
     y += 100;
     txtb("Controls", lx, y, 22, C_GOLD);
-    const char *k1[] = { "Click", "Right-click", "Space", "T", "I", "U", "X", "R", "Q" };
-    const char *k2[] = { "walk, attack, use, cast", "cancel", "end your turn", "turn-based on/off", "bag (wizard)", "spend a stat point", "throw an item away", "restart the room", "quit" };
-    for (int i = 0; i < 9; i++) {
+    const char *k1[] = { "Click", "Right-click", "Space", "T", "I", "U", "X", "Q" };
+    const char *k2[] = { "walk, attack, use, cast", "cancel", "end your turn", "turn-based on/off", "bag (wizard)", "spend a stat point", "throw an item away", "quit" };
+    for (int i = 0; i < 8; i++) {
         float kx = lx + (i % 3) * 470, ky = y + 34 + (i / 3) * 32;
         keycap(k1[i], kx, ky);
         txt(k2[i], kx + tw(k1[i], 14) + 22, ky, 17, C_TEXT);
@@ -3014,7 +3014,7 @@ static void class_screen(void) {
     const char *hp[3] = { "12 HP    AC 15", "11 HP    AC 14", "9 HP    AC 12" };
     const char *l1[3] = { "Two attacks every turn", "Hide and sneak attack", "Firebolt and Ray of Frost" };
     const char *l2[3] = { "Battle Master maneuvers", "Hiding costs movement", "Learns spells from scrolls" };
-    const char *l3[3] = { "Heavy armor and shields", "Light armor and rapiers", "Mana refills over time" };
+    const char *l3[3] = { "Heavy armor and shields", "Light armor, rapiers, bucklers", "Mana refills over time" };
     const int st[3][4] = { { 16, 13, 16, 13 }, { 12, 16, 13, 15 }, { 10, 14, 10, 19 } };
     Color cloth[3] = { { 38, 60, 132, 255 }, { 34, 92, 52, 255 }, { 84, 44, 128, 255 } };
     Color glow[3] = { C_BLUE, C_GREEN, C_PURPLE };

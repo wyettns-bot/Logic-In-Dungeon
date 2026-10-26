@@ -483,8 +483,6 @@ winText db 27, "[2J", 27, "[H", 10
 winTextlen equ $- winText
 msgNewRun db "A new descent begins. Good luck."
 msgNewRunlen equ $- msgNewRun
-msgReset db "Arena reset: new enemies, full HP and mana"
-msgResetlen equ $- msgReset
 
 linebar: db 10, "=====================================================", 10
 linebarlen equ $ - linebar
@@ -531,7 +529,7 @@ HELP_LEN equ 54
 helpFighter db "[1-c] Use  [M] Maneuver [P] Parry [L] Rally [G] Surge "
 helpRogue   db "[1-c] Use item  [H] Hide                              "
 helpWizard  db "[1-d] Cast  [I] Spells / Bag                          "
-actionBar2 db "[X] Discard  [Space] End turn  [R] Reset  [Q] Quit"
+actionBar2 db "[X] Discard  [Space] End turn  [Q] Quit           "   ; (padded: covers the old, longer text)
 actionBar2len equ $- actionBar2
 
 section .bss
@@ -743,10 +741,6 @@ main_loop:
     je quit
     cmp al, ' '
     je .endturn
-    cmp al, 'r'
-    je .reset
-    cmp al, 'R'
-    je .reset
     cmp al, 't'
     je .tb
     cmp al, 'T'
@@ -843,10 +837,6 @@ main_loop:
 .endturn:
     call end_turn
     jmp .next
-.reset:
-    call reset_arena
-    jmp .next
-
 .esc:
     cmp word [esi+1], '[<'
     jne .skip
@@ -1073,7 +1063,7 @@ end_turn:
     call draw_mode
 .r: ret
 
-reset_arena:                    ; R key: fresh enemies, full HP and mana, back to exploring
+reset_arena:                    ; "Play again" after the victory screen: a fresh run, full HP and mana
     call disarm
     mov eax, [playerMaxHP]
     mov [playerHP], eax
@@ -1092,7 +1082,6 @@ reset_arena:                    ; R key: fresh enemies, full HP and mana, back t
     call setup_room
     call spawn_enemies
     call redraw_all
-    msg msgReset
     call announce_room
     ret
 
@@ -1287,6 +1276,7 @@ count_alive:
 next_room:
     call rest_at_door           ; catch your breath: a third of your max HP back (progress.inc)
     inc dword [floorCount]
+    mov dword [trickCount], 0   ; a new floor: its boss tricks pay XP again (the first few)
     call setup_room             ; pick this room's logic gate (from floor 2 on)
     mov dword [inFight], 0
     mov dword [playerX], START_X
@@ -6127,11 +6117,11 @@ bossLoot:
 fists db 0b10,0b111,1,2,0b1000,1,0,0
 
 ; armor each class can wear, by ARMOR_WEIGHT bits (Heavy|Medium|Light|Clothes), class order '1','2','3'
-;   Fighter: everything, and shields.  Rogue: light armor.  Wizard: clothes only.
+;   Fighter: everything, and shields.  Rogue: light armor and light shields (the Buckler).  Wizard: clothes only.
 armorProf db 0b1111, 0b0011, 0b0001
 msgNoArmor db "You aren't trained to wear that"
 msgNoArmorlen equ $- msgNoArmor
-msgNoShield db "Only a fighter is trained with shields"
+msgNoShield db "Only fighters and rogues are trained with shields"
 msgNoShieldlen equ $- msgNoShield
 
 ; what each class starts with (weapon, armor), in class order '1','2','3'
@@ -6373,8 +6363,8 @@ equip_item:                     ; eax = bag slot. Weapons/armor are worn, potion
     je .trinket
     cmp byte [edi+ARMOR_TYPE], ARMOR_SHIELD
     jne .body
-    cmp ecx, 0                  ; shields: fighters only
-    jne .noshield
+    cmp ecx, 2                  ; shields: fighters, and rogues (a light shield only - the weight check
+    je .noshield                ;   above already let a rogue through for a Buckler, never a full Shield)
     jmp .shieldit
 .body:
     mov [equipBody], esi
@@ -10792,10 +10782,12 @@ msgSteal db "You drink "
 msgSteallen equ $- msgSteal
 pickRarity db " (rare)", " (LEGENDARY)"
 
+TRICK_XP_MAX equ 3                 ; boss tricks that pay XP on each floor
 section .bss
 playerLevel resd 1
 playerXP    resd 1
 statPoints  resd 1
+trickCount  resd 1              ; boss tricks paid for on this floor (see xp_trick)
 statPick    resd 1              ; 1 = the next key 1-4 raises a stat
 hpGained    resd 1              ; HP from levels (class die only; CON is added on top)
 baseStat    resd 4              ; STR DEX CON INT before gear
@@ -10899,6 +10891,7 @@ init_progress:                      ; after character creation (stats are set)
     mov dword [playerLevel], 1
     mov dword [playerXP], 0
     mov dword [statPoints], 0
+    mov dword [trickCount], 0
     mov dword [statPick], 0
     mov dword [hpGained], 0
     mov dword [lvLen], 0
@@ -11222,13 +11215,16 @@ xp_puzzle:                          ; a room's puzzle is solved
     popad
     ret
 
-xp_trick:                           ; a boss trick beaten: 15 + the floor
+xp_trick:                           ; a boss trick beaten: 15 + the floor - only the first 3 on each floor pay
+    cmp dword [trickCount], TRICK_XP_MAX   ; (so a boss's trick can't be repeated to farm experience;
+    jae .r                                 ;  restarting the room doesn't reset the count, a new floor does)
+    inc dword [trickCount]
     pushad
     mov eax, [floorCount]
     add eax, 15
     call gain_xp
     popad
-    ret
+.r: ret
 
 rest_at_door:                       ; going through the door: no healing - potions only
     ret

@@ -120,7 +120,7 @@ Then he starts again from the Warden. Killing him wins the game.
 
 **Starting HP:** Fighter 12, Rogue 11, Wizard 9.
 - **Fighter:** Battle Master maneuvers with superiority dice, Parry, Rally and Action Surge.
-- **Rogue:** starts with a Rapier. **Cunning Action:** in a fight, hiding costs 3 movement instead of your attack, so you can step away, hide, step back and sneak attack in one turn. At the end of the enemy turn, any enemy within 3 cells finds you.
+- **Rogue:** starts with a Rapier, wears light armor, and can carry a Buckler (but not a full Shield). **Cunning Action:** in a fight, hiding costs 3 movement instead of your attack, so you can step away, hide, step back and sneak attack in one turn. At the end of the enemy turn, any enemy within 3 cells finds you.
 - **Wizard:** spells cost mana, which comes back over time (faster in a fight).
 
 **Healing.** Going through a door does not heal you; potions do.
@@ -135,7 +135,7 @@ Then he starts again from the Warden. Killing him wins the game.
 - **XP sources:**
   - Kills: goblin 10, skeleton 15, orc 20, plus 2 per floor. Bosses are worth 100-500.
   - Solving a room's puzzle: 25 + floor, or 40 + 2 x floor for a circuit.
-  - Beating a boss trick: 15 + floor. Tricks are breaking a shield, lighting the lantern, putting out a power torch, cutting a Warden's link, finding the bishops' 1, or firing the King's cannon.
+  - Beating a boss trick: 15 + floor, for the first 3 tricks on each floor (so a trick can't be repeated to farm XP). Tricks are breaking a shield, lighting the lantern, putting out a power torch, cutting a Warden's link, finding the bishops' 1, or firing the King's cannon.
 - **HP per level:** Fighter 6, Rogue 5, Wizard 4, plus your CON modifier. You heal by the amount you gain.
 - **Stat points:** every even level gives one. In the window, click a stat box at the top. In the terminal, press **U** and then 1 STR, 2 DEX, 3 CON or 4 INT. A stat can go up to 24.
 - **Modifiers:** every stat counts as **(stat - 10) / 2**, so 16 is +3. Damage, superiority dice, spells, AC and HP all use it.

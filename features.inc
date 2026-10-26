@@ -117,11 +117,11 @@ CATALOG_COUNT equ ($ - catalogTable) / CAT_SIZE
 fists db 0b10,0b111,1,2,0b1000,1,0,0
 
 ; armor each class can wear, by ARMOR_WEIGHT bits (Heavy|Medium|Light|Clothes), class order '1','2','3'
-;   Fighter: everything, and shields.  Rogue: light armor.  Wizard: clothes only.
+;   Fighter: everything, and shields.  Rogue: light armor and light shields (the Buckler).  Wizard: clothes only.
 armorProf db 0b1111, 0b0011, 0b0001
 msgNoArmor db "You aren't trained to wear that"
 msgNoArmorlen equ $- msgNoArmor
-msgNoShield db "Only a fighter is trained with shields"
+msgNoShield db "Only fighters and rogues are trained with shields"
 msgNoShieldlen equ $- msgNoShield
 
 ; what each class starts with (weapon, armor), in class order '1','2','3'
@@ -363,8 +363,8 @@ equip_item:                     ; eax = bag slot. Weapons/armor are worn, potion
     je .trinket
     cmp byte [edi+ARMOR_TYPE], ARMOR_SHIELD
     jne .body
-    cmp ecx, 0                  ; shields: fighters only
-    jne .noshield
+    cmp ecx, 2                  ; shields: fighters, and rogues (a light shield only - the weight check
+    je .noshield                ;   above already let a rogue through for a Buckler, never a full Shield)
     jmp .shieldit
 .body:
     mov [equipBody], esi

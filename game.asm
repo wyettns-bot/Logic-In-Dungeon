@@ -190,8 +190,6 @@ winText db 27, "[2J", 27, "[H", 10
 winTextlen equ $- winText
 msgNewRun db "A new descent begins. Good luck."
 msgNewRunlen equ $- msgNewRun
-msgReset db "Arena reset: new enemies, full HP and mana"
-msgResetlen equ $- msgReset
 
 linebar: db 10, "=====================================================", 10
 linebarlen equ $ - linebar
@@ -238,7 +236,7 @@ HELP_LEN equ 54
 helpFighter db "[1-c] Use  [M] Maneuver [P] Parry [L] Rally [G] Surge "
 helpRogue   db "[1-c] Use item  [H] Hide                              "
 helpWizard  db "[1-d] Cast  [I] Spells / Bag                          "
-actionBar2 db "[X] Discard  [Space] End turn  [R] Reset  [Q] Quit"
+actionBar2 db "[X] Discard  [Space] End turn  [Q] Quit           "   ; (padded: covers the old, longer text)
 actionBar2len equ $- actionBar2
 
 section .bss
@@ -450,10 +448,6 @@ main_loop:
     je quit
     cmp al, ' '
     je .endturn
-    cmp al, 'r'
-    je .reset
-    cmp al, 'R'
-    je .reset
     cmp al, 't'
     je .tb
     cmp al, 'T'
@@ -550,10 +544,6 @@ main_loop:
 .endturn:
     call end_turn
     jmp .next
-.reset:
-    call reset_arena
-    jmp .next
-
 .esc:
     cmp word [esi+1], '[<'
     jne .skip
@@ -780,7 +770,7 @@ end_turn:
     call draw_mode
 .r: ret
 
-reset_arena:                    ; R key: fresh enemies, full HP and mana, back to exploring
+reset_arena:                    ; "Play again" after the victory screen: a fresh run, full HP and mana
     call disarm
     mov eax, [playerMaxHP]
     mov [playerHP], eax
@@ -799,7 +789,6 @@ reset_arena:                    ; R key: fresh enemies, full HP and mana, back t
     call setup_room
     call spawn_enemies
     call redraw_all
-    msg msgReset
     call announce_room
     ret
 
@@ -994,6 +983,7 @@ count_alive:
 next_room:
     call rest_at_door           ; catch your breath: a third of your max HP back (progress.inc)
     inc dword [floorCount]
+    mov dword [trickCount], 0   ; a new floor: its boss tricks pay XP again (the first few)
     call setup_room             ; pick this room's logic gate (from floor 2 on)
     mov dword [inFight], 0
     mov dword [playerX], START_X
