@@ -81,13 +81,14 @@ Use a terminal at least 80 columns wide and 24 rows tall.
 
 2. **Finish setting up Ubuntu.** After the restart, Ubuntu opens by itself (or open **Ubuntu** from the Start menu). Pick a Linux username and password. The password is what `sudo` will ask for.
 
-3. **Check for updates.** In PowerShell, run `wsl --update`. Windows 11, and Windows 10 with recent updates, include **WSLg**, which shows Linux windows and plays their sound. Nothing else needs installing.
+3. **Check for updates.** In PowerShell, run `wsl --update`. Windows 11, and Windows 10 with recent updates, include **WSLg**, which shows Linux windows and plays their sound. (If the game is silent later, see **Sound on WSL** below.)
 
 4. **Install the tools and raylib.** In the Ubuntu window:
 
        sudo apt update
        sudo apt install build-essential nasm git unzip \
-           libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
+           libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev \
+           libpulse0 pulseaudio-utils libasound2-plugins
        cd ~
        git clone --depth 1 --branch 5.5 https://github.com/raysan5/raylib.git
        cd raylib/src
@@ -110,6 +111,46 @@ The game opens in its own window on your Windows desktop.
 
     cd ~/logic_in_dungeon && ./rd_gui
 
+### Sound on WSL
+
+WSLg can play Linux sound, but a fresh Ubuntu often lacks the pieces the game needs to reach it, so
+the window opens silent. Do this once.
+
+1. **Check you are on WSL 2.** In PowerShell, run `wsl -l -v`. The VERSION column must say `2`
+   (WSL 1 has no sound). If it says 1: `wsl --set-version Ubuntu 2`.
+
+2. **Install the sound libraries** in the Ubuntu window:
+
+       sudo apt install libpulse0 pulseaudio-utils libasound2-plugins
+
+   `libpulse0` lets the game talk to WSLg's sound server, `libasound2-plugins` sends ALSA sound
+   there too, and `pulseaudio-utils` gives you `paplay` to test with. raylib finds them when the
+   game starts, so you don't need to rebuild anything.
+
+3. **Point Linux at WSLg's sound server.** Check it is set:
+
+       echo $PULSE_SERVER
+
+   It should print `unix:/mnt/wslg/PulseServer`. If it prints nothing, add it for good and reload:
+
+       echo 'export PULSE_SERVER=unix:/mnt/wslg/PulseServer' >> ~/.bashrc
+       source ~/.bashrc
+
+4. **Send ALSA sound to it as well** (some setups need this). Create `~/.asoundrc`:
+
+       printf 'pcm.!default { type pulse }\nctl.!default { type pulse }\n' > ~/.asoundrc
+
+5. **Test it** from the game folder. You should hear the door open:
+
+       paplay assets/sfx/door_open.wav
+
+   Sound here but not in the game? Make sure sound is on in the game: **F9** turns sound effects
+   on and off, **F10** music, and the **Options** menu has the volume sliders.
+
+6. **Still silent?** In PowerShell run `wsl --update`, then `wsl --shutdown`, and open Ubuntu
+   again. Also open the Windows volume mixer while the game runs: WSL's sound shows up there as
+   its own app (named like *Remote Desktop* or *msrdc*), and it may be turned down.
+
 ---
 
 ## 4. Troubleshooting
@@ -120,7 +161,7 @@ The game opens in its own window on your Windows desktop.
 | `raylib.h: No such file or directory` | raylib isn't installed. Build it from source and use `RAYLIB_DIR=...` as shown. |
 | `cannot find -lraylib` | Same as above: point `RAYLIB_DIR` at the `raylib/src` folder that contains `libraylib.a`. |
 | Linker errors about `X11`, `GL`, `pthread` | Use the `RAYLIB_DIR=... sh build_gui.sh` form. It links every library raylib needs. |
-| Window opens but no sound | Check that `assets/sfx` and `assets/music` sit next to `rd_gui`, and check the volume in the in-game **Options** menu. On WSL, run `wsl --update` in PowerShell. |
+| Window opens but no sound | Check that `assets/sfx` and `assets/music` sit next to `rd_gui`, and check the volume in the in-game **Options** menu. On WSL, follow **Sound on WSL** in section 3. |
 | WSL: `cannot open display` / no window appears | Run `wsl --update` and `wsl --shutdown` in PowerShell, then open Ubuntu again. |
 | `Permission denied` running `./rd_gui` | `chmod +x rd_gui game` |
 | Text in the terminal version is garbled | Make the terminal at least 80x24. |
