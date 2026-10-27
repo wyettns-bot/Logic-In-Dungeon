@@ -81,6 +81,10 @@ setup_circuit:
     jz .load
     mov eax, CT_C
 .load:
+    cmp dword [demoLayout], 0       ; demo mode can ask for one layout (demo.inc)
+    jl .ld
+    mov eax, [demoLayout]
+.ld:
     call circ_load
     jmp circ_pick_types
 

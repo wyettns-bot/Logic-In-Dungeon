@@ -165,6 +165,7 @@ section .bss
 
     class resb 2
     continue_input resb 2
+    demoFlag resb 1               ; 1 = demo mode was chosen on the title
     statChoice resb 2
 
 
@@ -199,6 +200,7 @@ section .bss
 section .text
 
     global character_creation
+    global demoFlag
     
     global strength, dex, con, intel
     global class, classLabel,classLabellen
@@ -224,6 +226,11 @@ character_creation:
     mov ecx, continue_input
     mov edx, 2
     int 0x80
+    mov al, [continue_input]        ; "d" + Enter (the window's Demo button): demo mode
+    or al, 0x20
+    cmp al, 'd'
+    jne selectClass
+    mov byte [demoFlag], 1
 
 
 ; =========================================================

@@ -16,6 +16,8 @@ temporary folder, patched there and assembled. Options:
     nofight   boss rooms never start the fight (enemies keep exploring)
     stat      start with 3 stat points
     weakwardens  Wardens have 3-4 base HP (to test what happens when one dies)
+    frail     demo mode: each demo room starts the hero at 1 HP (to test that you can't die)
+    frailunbound  the Unbound has 1 HP (to test what happens when he dies)
 
 Every patch checks that the code it changes is still there; if the game's source has moved on,
 the build stops with a message instead of silently testing the wrong thing.
@@ -78,6 +80,16 @@ def build(name, floor, opts):
             p = os.path.join(src, "game_assets.asm"); s = open(p).read()
             s2 = re.sub(r"\tminiboss db \d+,\d+,", "\tminiboss db 3,4,", s, count=1)
             if s2 == s: sys.exit("testbuild: can't apply 'weakwardens'")
+            open(p, "w").write(s2)
+        if "frail" in opts:
+            patch(src, "demo.inc", """.full:
+    mov eax, [playerMaxHP]
+    mov [playerHP], eax""", """.full:
+    mov dword [playerHP], 1     ; TEST frail""", "frail")
+        if "frailunbound" in opts:
+            p = os.path.join(src, "game_assets.asm"); s = open(p).read()
+            s2 = re.sub(r"(\tunbound db )\d+,\d+,", r"\g<1>1,1,", s, count=1)
+            if s2 == s: sys.exit("testbuild: can't apply 'frailunbound'")
             open(p, "w").write(s2)
         if "god" in opts:
             patch(src, "enemies.inc", """.chk:

@@ -421,6 +421,7 @@ static int chosen_class;                  /* remembered from the class screen */
 static char gate_txt[240];
 static char king_riddle[3][80];           /* the throne's hidden gates, one riddle each */                /* the plaque's riddle, kept for the rest of the floor */
 static int gate_floor = -1;
+static int demo_on;                                          /* demo mode: the game showed its room list */
 
 static void row_text(int r, int c0, int c1, char *out) {           /* columns c0..c1-1, trimmed */
     int a = c0, b = c1;
@@ -2363,6 +2364,7 @@ static void wrap_text(const char *s, float x, float y, float w, float size, Colo
 
 static void draw_log_card(Rectangle r) {
     card(r); card_title("LOG", r.x + 16, r.y + 12);
+    if (demo_on && button((Rectangle){ r.x + r.width - 146, r.y + 8, 134, 28 }, "Room list", C_BLUE, !game_over)) send_key('#');
     int maxl = 6;
     if (gate_floor == S.floor && gate_txt[0]) {               /* the door's riddle stays pinned here */
         int open = 0;
@@ -2751,7 +2753,7 @@ static int en_has(const char *letters) {
 }
 static void music_pick(int screen, int died) {
     if (screen == 0) music_want("title");
-    else if (screen == 1 || screen == 2) music_want("class_select|title");
+    else if (screen == 1 || screen == 2 || screen == 6) music_want("class_select|title");
     else if (screen == 4) music_want("victory");
     else if (screen == 5) { if (died) music_want("game_over"); else music_want(""); }
     else {
@@ -2926,12 +2928,14 @@ static void title_screen(void) {
         sprite(cl[i], 16, x, 560 - lift, 6, WHITE, 0);
     }
     /* the menu */
+    demo_on = 0;
     if (!how_open) {
-        float bw = 230, bx = W / 2.0f - (bw * 4 + 60) / 2;
+        float bw = 210, bx = W / 2.0f - (bw * 5 + 80) / 2;
         if (button((Rectangle){ bx, 720, bw, 58 }, "Start", C_GREEN, 1)) game_send("\r", 1);
-        if (button((Rectangle){ bx + bw + 20, 720, bw, 58 }, "How to Play", C_GOLD, 1)) how_open = 1;
-        if (button((Rectangle){ bx + 2 * (bw + 20), 720, bw, 58 }, "Options", C_GOLD, 1)) options_set_open(1);
-        if (button((Rectangle){ bx + 3 * (bw + 20), 720, bw, 58 }, "Quit", C_RED, 1)) wants_exit = 1;
+        if (button((Rectangle){ bx + bw + 20, 720, bw, 58 }, "Demo", C_BLUE, 1)) game_send("d\r", 2);   /* the game's demo mode (demo.inc) */
+        if (button((Rectangle){ bx + 2 * (bw + 20), 720, bw, 58 }, "How to Play", C_GOLD, 1)) how_open = 1;
+        if (button((Rectangle){ bx + 3 * (bw + 20), 720, bw, 58 }, "Options", C_GOLD, 1)) options_set_open(1);
+        if (button((Rectangle){ bx + 4 * (bw + 20), 720, bw, 58 }, "Quit", C_RED, 1)) wants_exit = 1;
         float a = 0.45f + 0.35f * sinf(T * 3);
         txt_c("Enter: start", W / 2.0f, 800, 18, Fade(C_TEXT, a), 0);
         txt_c(snd_on ? (mus_on ? "F9: sound on    F10: music on" : "F9: sound on    F10: music off") : "F9: sound off", W / 2.0f, 836, 15, Fade(C_DIM, 0.8f), 0);
@@ -3103,6 +3107,38 @@ static void victory_screen(void) {
     if (button((Rectangle){ W / 2.0f + 20, 540, 200, 52 }, "Quit", C_RED, 1)) game_send("n", 1);
 }
 
+static void demo_screen(void) {                            /* demo mode: the game's room list, as buttons */
+    static const char *puz[5] = { "One torch pair", "Every accepted input", "Two gates in a chain", "A circuit with NOT", "A hidden gate" };
+    static const int puzf[5] = { 2, 5, 16, 22, 25 };
+    static const char *bos[8] = { "Warden", "The Four Bishops", "Dark Shade", "Grand Wizard Ymir", "Logic Keeper", "Altair and Smo", "The Forgotten King", "The Unbound" };
+    static const int bosf[8] = { 4, 12, 15, 17, 21, 26, 30, 30 };
+    demo_on = 1;
+    gate_floor = -1; fallen_quiet = 0; unbound_hold = 0;          /* nothing carries over from the last room */
+    corridor_bg(0.35f, 0.45f);
+    txt_c("Demo mode", W / 2.0f + 3, 34, 52, BLACK, 1);
+    txt_c("Demo mode", W / 2.0f, 30, 52, (Color){ 250, 206, 120, 255 }, 1);
+    txt_c("Pick a room to show. Leave through its door, or press Room list, to come back here.", W / 2.0f, 100, 20, (Color){ 230, 210, 170, 255 }, 0);
+    txt_c("The hero is levelled for that floor and can't die.", W / 2.0f, 128, 18, C_DIM, 0);
+    char b[64];
+    Rectangle pc = { 150, 180, 560, 520 };
+    card(pc); card_title("PUZZLE ROOMS", pc.x + 20, pc.y + 16);
+    for (int i = 0; i < 5; i++) {
+        Rectangle r = { pc.x + 24, pc.y + 70 + i * 86, pc.width - 48, 64 };
+        snprintf(b, sizeof b, "%s  (floor %d)", puz[i], puzf[i]);
+        if (button(r, b, C_BLUE, 1)) { char k = (char)('a' + i); send_key(k); }
+    }
+    Rectangle bc = { 750, 180, 820, 520 };
+    card(bc); card_title("BOSSES", bc.x + 20, bc.y + 16);
+    for (int i = 0; i < 8; i++) {
+        Rectangle r = { bc.x + 24 + (i / 4) * 392, bc.y + 70 + (i % 4) * 108, 364, 84 };
+        snprintf(b, sizeof b, "%s  (floor %d)", bos[i], bosf[i]);
+        if (button(r, b, i == 7 ? C_GOLD : C_PURPLE, 1)) { char k = (char)('f' + i); send_key(k); }
+    }
+    if (button((Rectangle){ W / 2.0f - 230, 740, 220, 52 }, "Back to title", C_GOLD, 1)) return_to_title();
+    if (button((Rectangle){ W / 2.0f + 10, 740, 220, 52 }, "Quit", C_RED, 1)) wants_exit = 1;
+    txt_c("Or press a letter: a-e puzzle rooms, f-m bosses", W / 2.0f, 820, 18, C_DIM, 0);
+}
+
 /* ================================================================== */
 /* 7. putting it together                                              */
 /* ================================================================== */
@@ -3267,6 +3303,7 @@ int main(int argc, char **argv) {
         int screen;
         if (S.in_game || (over && have_last)) { game_screen(); screen = 3; }
         else if (screen_has("You have won")) { victory_screen(); screen = 4; }
+        else if (screen_has("DEMO MODE: choose a room")) { demo_screen(); screen = 6; }
         else if (screen_has("Press Enter to Continue")) { title_screen(); screen = 0; }
         else if (screen_has("Select a class")) { class_screen(); screen = 1; }
         else { text_screen(); screen = 2; }

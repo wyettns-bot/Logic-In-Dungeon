@@ -92,7 +92,7 @@ def stop():
 
 def new_game(cls="1"):
     """From the title screen: Start, pick a class (1 Fighter, 2 Rogue, 3 Wizard), accept the stats."""
-    cmd("uiclick 485 749"); time.sleep(1.0)
+    cmd("uiclick 400 749"); time.sleep(1.0)
     cmd(f"key {cls}\\n"); time.sleep(0.6); cmd("key y\\n"); time.sleep(0.5)
     for k in "444": cmd("key " + k + "\\n"); time.sleep(0.3)
     time.sleep(4)

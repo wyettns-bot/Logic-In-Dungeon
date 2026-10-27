@@ -30,6 +30,7 @@
 
 ;externs
 extern character_creation
+extern demoFlag
 extern classLabel
 extern classLabellen
 extern print_clear
@@ -395,6 +396,10 @@ _start:
     call get_ms
     mov [lastTick], eax
     call enter_raw
+    cmp byte [demoFlag], 0
+    je main_loop
+    mov dword [demoMode], 1         ; demo mode: straight to the room list (demo.inc)
+    call demo_pick
 
 ;-----------------------------------------------------------------
 ; main loop
@@ -402,7 +407,12 @@ _start:
 main_loop:
     cmp dword [wonGame], 0
     je .play
+    cmp dword [demoMode], 0
+    jne .demowin
     call victory_screen         ; the Forgotten King is dead
+    jmp .play
+.demowin:
+    call demo_pick              ; demo mode: back to the room list
 .play:
     mov eax, 3
     xor ebx, ebx
@@ -442,6 +452,8 @@ main_loop:
 .unpick:
     mov dword [statPick], 0
 .keys:
+    cmp al, '#'                 ; demo mode: back to the room list
+    je .demolist
     cmp al, 'q'
     je quit
     cmp al, 'Q'
@@ -544,6 +556,11 @@ main_loop:
 .endturn:
     call end_turn
     jmp .next
+.demolist:
+    cmp dword [demoMode], 0
+    je .next
+    call demo_pick
+    jmp main_loop
 .esc:
     cmp word [esi+1], '[<'
     jne .skip
@@ -981,9 +998,12 @@ count_alive:
 .d: ret
 
 next_room:
+    cmp dword [demoMode], 0
+    jne demo_pick               ; demo mode: the door leads back to the room list (demo.inc)
     call rest_at_door           ; catch your breath: a third of your max HP back (progress.inc)
     inc dword [floorCount]
     mov dword [trickCount], 0   ; a new floor: its boss tricks pay XP again (the first few)
+enter_floor:                    ; set up floor [floorCount] and walk in (the demo jumps here too)
     call setup_room             ; pick this room's logic gate (from floor 2 on)
     mov dword [inFight], 0
     mov dword [playerX], START_X
@@ -2623,3 +2643,4 @@ weapon_range:                   ; -> eax = the attack range of the weapon you ho
 %include "bosses.inc"           ; Ymir, the Logic Keeper, Altair and Smo
 %include "bosses2.inc"          ; the Four Bishops, the Keeper's Wardens
 %include "progress.inc"         ; levels, XP, perks, what your gear adds
+%include "demo.inc"             ; demo mode: one room of each kind, from the window's Demo button

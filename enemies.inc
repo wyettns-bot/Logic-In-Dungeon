@@ -741,9 +741,13 @@ enemies_attack:                 ; end of the enemy turn: everyone in range attac
     cmp dword [playerHP], 0
     jg .alive
     mov dword [playerHP], 0
+    cmp dword [demoMode], 0
+    jne .saved                  ; demo mode: you can't die (demo.inc)
     call draw_hp
     msg msgDead
     jmp quit
+.saved:
+    call demo_save
 .alive:
     call draw_hp
     ret

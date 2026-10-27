@@ -388,6 +388,11 @@ player_dead_check:                  ; a boss rule hurt you outside the attack li
     cmp dword [playerHP], 0
     jg .ok
     mov dword [playerHP], 0
+    cmp dword [demoMode], 0
+    je .dead
+    call demo_save                  ; demo mode: you can't die (demo.inc)
+    jmp .ok
+.dead:
     call draw_hp
     msg msgDead
     jmp quit
