@@ -12,6 +12,7 @@ python3 tools/tests/run_all.py 12 21    # just these boss floors
 python3 tools/tests/boss_test.py 30     # one boss
 python3 tools/tests/unbound_test.py     # the Unbound King's six forms
 python3 tools/tests/warden_death_test.py
+python3 tools/tests/demo_test.py        # the title's Demo button
 ```
 
 Each test prints `PASS` or `FAIL` (with what was missing). `run_all.py` ends with a summary
@@ -37,6 +38,7 @@ game, the test window, message logs and screenshots.
 | `boss_test.py 30` | Forgotten King: the blue cannon fires, both rewires happen, the fake death, he rises Unbound |
 | `unbound_test.py` | The Unbound's forms come in order, at the right size, fully drawn, with the right number of copies |
 | `warden_death_test.py` | The Keeper's Wardens attack, and a killed Warden vanishes and stays gone |
+| `demo_test.py` | Demo mode: every room on the list comes up on the right floor with a levelled hero and goes back with Room list; the hero can't die; the door and the Unbound's death lead back to the list |
 
 ## The pieces
 
@@ -45,7 +47,7 @@ game, the test window, message logs and screenshots.
 | `testbuild.py` | Builds a test copy of the game with cheats (`python3 tools/tests/testbuild.py NAME FLOOR hp250 god solve ...`). The real game is never changed; every patch checks the code it changes is still there |
 | `test_solve.asm` | The `!` key used by the `solve` option: sets the torches so the current boss puzzle is beaten |
 | `driver.py` | Starts the game window under Xvfb and scripts it: keys, clicks, screenshots, reading the game's text screen and its message log |
-| `boss_test.py`, `unbound_test.py`, `warden_death_test.py` | The tests |
+| `boss_test.py`, `unbound_test.py`, `warden_death_test.py`, `demo_test.py` | The tests |
 | `run_all.py` | Runs them all |
 
 The window only accepts these scripted commands when it is built with `-DRD_TEST`; the normal

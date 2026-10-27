@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """run_all.py - run every test bot and print a summary.  (Takes about 15-20 minutes.)
 
-    python3 tools/tests/run_all.py            every boss, the Unbound's forms, the Keeper's Wardens
+    python3 tools/tests/run_all.py            every boss, the Unbound's forms, the Keeper's Wardens, demo mode
     python3 tools/tests/run_all.py 12 21      just those boss floors
 
 Needs nasm, gcc + raylib, and xvfb-run. If raylib is built from source, set RAYLIB_DIR.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import boss_test, unbound_test, warden_death_test
+import boss_test, unbound_test, warden_death_test, demo_test
 
 floors = [int(a) for a in sys.argv[1:]] or [4, 8, 12, 15, 17, 21, 26, 30]
 results = []
@@ -17,6 +17,7 @@ for f in floors:
 if not sys.argv[1:]:
     results.append(("Unbound forms", unbound_test.run()))
     results.append(("Keeper's Wardens", warden_death_test.run()))
+    results.append(("Demo mode", not (demo_test.rooms() + demo_test.endings())))
 print("\n==== summary ====")
 for name, ok in results:
     print(f"  {'PASS' if ok else 'FAIL'}  {name}")

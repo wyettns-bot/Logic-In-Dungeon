@@ -27,6 +27,21 @@ If your raylib is built from source, run `RAYLIB_DIR=/path/to/raylib/src sh buil
 **Step-by-step setup for Fedora, Ubuntu/Debian, Arch and Windows (through WSL2) is in `HOW_TO_RUN.md`.**
 Screenshots of the menus, every kind of puzzle room and every boss are in `screenshots/`.
 
+## Demo mode
+
+For showing the game, the title screen's **Demo** button skips straight to a list of rooms:
+the five kinds of puzzle room and every boss. Pick a class as usual, then click a room.
+
+- Every room starts a fresh hero levelled for that floor (stat points spent on the class's
+  main stat), wearing the legendaries of the bosses before it. The Truth Amulet goes in the bag
+  unworn, so the hidden gate on floor 25 stays hidden.
+- The hero can't die: at 0 HP it is healed back to full.
+- Leaving through the door, beating the last boss, or the **Room list** button (top of the log)
+  goes back to the list. **Back to title** leaves demo mode.
+
+The rules are in `demo.inc`. The terminal game has it too (type `d` and Enter on its title, then
+`#` for the room list), but only the window shows a button for it.
+
 ## The 30 floors
 
 | Floors | What waits there |
@@ -273,6 +288,7 @@ The sprites are drawn by the Python scripts in `art/` (shapes plus an automatic 
 | `features.inc` | Inventory, loot, Battle Master, stealth |
 | `path.inc` | Pathfinding, and the invisible notes the window reads (previews, casts, attacks, icons) |
 | `bosses2.inc` | The Four Bishops, the Logic Keeper's Wardens |
+| `demo.inc` | Demo mode: the room list, the levelled hero, no dying |
 | `rd_gui.c`, `sprites.h` | raylib front end and pixel art. Section 1b loads and plays the audio, section 5 decides what plays |
 | `assets/sfx`, `assets/music` | Sound effects and music |
 | `tools/audio/sfx_synth.py` | Generates every sound effect from code |
